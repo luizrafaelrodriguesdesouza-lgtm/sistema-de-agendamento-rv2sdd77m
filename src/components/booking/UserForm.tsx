@@ -1,88 +1,94 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
-import useAuthStore from '@/stores/useAuthStore'
-import useDataStore from '@/stores/useDataStore'
-import { Professional, Service } from '@/stores/types'
 import { useToast } from '@/hooks/use-toast'
+import { format } from 'date-fns'
+import pb from '@/lib/pocketbase/client'
+import { useAuth } from '@/hooks/use-auth'
 
 export function UserForm({
   professional,
   service,
   dateTime,
+  onSuccess,
 }: {
-  professional: Professional
-  service: Service
+  professional: any
+  service: any
   dateTime: { date: Date; time: string }
+  onSuccess: () => void
 }) {
-  const { user } = useAuthStore()
-  const { addAppointment } = useDataStore()
-  const navigate = useNavigate()
+  const { user } = useAuth()
   const { toast } = useToast()
 
   const [name, setName] = useState(user?.name || '')
   const [email, setEmail] = useState(user?.email || '')
   const [phone, setPhone] = useState('')
+  const [loading, setLoading] = useState(false)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    const reference = crypto.randomUUID().split('-')[0].toUpperCase()
+    setLoading(true)
 
-    addAppointment({
-      id: crypto.randomUUID(),
-      reference,
-      serviceId: service.id,
-      professionalId: professional.id,
-      clientName: name,
-      clientEmail: email,
-      clientPhone: phone,
-      date: dateTime.date.toISOString().split('T')[0],
-      time: dateTime.time,
-      status: 'Confirmado',
-    })
+    try {
+      const [hour, minute] = dateTime.time.split(':')
+      const dt = new Date(dateTime.date)
+      dt.setHours(parseInt(hour), parseInt(minute), 0, 0)
 
-    toast({ title: 'Agendamento Confirmado!' })
-    navigate(`/consulta/${reference}`)
+      const ref = Math.random().toString(36).substring(2, 8).toUpperCase()
+
+      const payload: any = {
+        profissional_id: professional.id,
+        servico_id: service.id,
+        data: dt.toISOString(),
+        status: 'pendente',
+        referencia: ref,
+        cliente_nome: name,
+        cliente_email: email,
+        cliente_telefone: phone,
+      }
+
+      if (user && user.tipo === 'cliente') {
+        payload.cliente_id = user.id
+      }
+
+      await pb.collection('agendamentos').create(payload)
+
+      toast({
+        title: 'Agendamento Confirmado!',
+        description: `Sua referência é: ${ref}`,
+      })
+      onSuccess()
+    } catch (err: any) {
+      toast({ title: 'Erro ao agendar', description: err.message, variant: 'destructive' })
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6 animate-fade-in-up max-w-xl mx-auto">
-      <div className="p-6 bg-primary/5 rounded-xl border border-primary/20 text-sm space-y-2">
-        <h4 className="font-bold text-primary mb-4 text-base border-b border-primary/20 pb-2">
-          Resumo do Agendamento
-        </h4>
-        <div className="flex justify-between">
-          <span className="text-slate-500">Serviço:</span>{' '}
-          <span className="font-medium">{service.name}</span>
-        </div>
-        <div className="flex justify-between">
-          <span className="text-slate-500">Profissional:</span>{' '}
-          <span className="font-medium">{professional.name}</span>
-        </div>
-        <div className="flex justify-between">
-          <span className="text-slate-500">Data:</span>{' '}
-          <span className="font-medium">
-            {dateTime.date.toLocaleDateString('pt-BR')} às {dateTime.time}
-          </span>
-        </div>
-        <div className="flex justify-between pt-2 mt-2 border-t border-primary/20">
-          <span className="text-slate-500">Total a Pagar:</span>{' '}
-          <span className="font-bold text-primary text-lg">R$ {service.price.toFixed(2)}</span>
-        </div>
+    <form onSubmit={handleSubmit} className="space-y-6 animate-fade-in-up">
+      <div className="bg-slate-50 p-6 rounded-xl border mb-6 space-y-2">
+        <h3 className="font-bold text-slate-800">Resumo do Agendamento</h3>
+        <p className="text-sm text-slate-600">
+          <span className="font-semibold">Serviço:</span> {service.nome}
+        </p>
+        <p className="text-sm text-slate-600">
+          <span className="font-semibold">Profissional:</span> {professional.name}
+        </p>
+        <p className="text-sm text-slate-600">
+          <span className="font-semibold">Data/Hora:</span> {format(dateTime.date, 'dd/MM/yyyy')} às{' '}
+          {dateTime.time}
+        </p>
+        <p className="text-sm text-slate-600">
+          <span className="font-semibold">Valor:</span> R$ {service.preco.toFixed(2)}
+        </p>
       </div>
 
-      <div className="bg-white p-6 rounded-xl border shadow-sm space-y-4">
-        <h4 className="font-bold text-slate-800">Seus Dados</h4>
+      <div className="space-y-4">
         <div className="space-y-2">
-          <Label>Nome Completo</Label>
-          <Input
-            required
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="João da Silva"
-          />
+          <Label>Seu Nome Completo</Label>
+          <Input required value={name} onChange={(e) => setName(e.target.value)} className="h-12" />
         </div>
         <div className="space-y-2">
           <Label>E-mail</Label>
@@ -91,22 +97,23 @@ export function UserForm({
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="joao@exemplo.com"
+            className="h-12"
           />
         </div>
         <div className="space-y-2">
-          <Label>Telefone / WhatsApp</Label>
+          <Label>Telefone (WhatsApp)</Label>
           <Input
             required
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
             placeholder="(00) 00000-0000"
+            className="h-12"
           />
         </div>
       </div>
 
-      <Button type="submit" className="w-full shadow-elevation" size="lg">
-        Confirmar Agendamento
+      <Button type="submit" className="w-full h-14 text-lg mt-4" disabled={loading}>
+        {loading ? 'Confirmando...' : 'Confirmar Agendamento'}
       </Button>
     </form>
   )

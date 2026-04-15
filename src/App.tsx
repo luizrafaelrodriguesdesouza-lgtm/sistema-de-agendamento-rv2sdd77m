@@ -21,38 +21,35 @@ import AdminWebhooks from './pages/admin/AdminWebhooks'
 import NotFound from './pages/NotFound'
 
 import { AuthProvider } from './hooks/use-auth'
-import { DataProvider } from './stores/useDataStore'
 
 const App = () => (
   <AuthProvider>
-    <DataProvider>
-      <BrowserRouter future={{ v7_startTransition: false, v7_relativeSplatPath: false }}>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <Routes>
-            <Route element={<Layout />}>
-              <Route path="/" element={<Index />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/cadastro" element={<Register />} />
-              <Route path="/pendente" element={<PendingApproval />} />
-              <Route path="/meus-agendamentos" element={<ClientDashboard />} />
-              <Route path="/consulta/:reference" element={<Tracking />} />
+    <BrowserRouter future={{ v7_startTransition: false, v7_relativeSplatPath: false }}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <Routes>
+          <Route element={<Layout />}>
+            <Route path="/" element={<Index />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/cadastro" element={<Register />} />
+            <Route path="/pendente" element={<PendingApproval />} />
+            <Route path="/meus-agendamentos" element={<ClientDashboard />} />
+            <Route path="/consulta/:reference" element={<Tracking />} />
+          </Route>
+          <Route element={<DashboardLayout />}>
+            <Route path="/dashboard/profissional" element={<ProfessionalDashboard />} />
+            <Route path="/dashboard/proprietario" element={<OwnerDashboard />} />
+            <Route element={<AdminRoute />}>
+              <Route path="/admin/dashboard" element={<AdminDashboard />} />
+              <Route path="/admin/approvals" element={<AdminApprovals />} />
+              <Route path="/admin/webhooks" element={<AdminWebhooks />} />
             </Route>
-            <Route element={<DashboardLayout />}>
-              <Route path="/dashboard/profissional" element={<ProfessionalDashboard />} />
-              <Route path="/dashboard/proprietario" element={<OwnerDashboard />} />
-              <Route element={<AdminRoute />}>
-                <Route path="/admin/dashboard" element={<AdminDashboard />} />
-                <Route path="/admin/approvals" element={<AdminApprovals />} />
-                <Route path="/admin/webhooks" element={<AdminWebhooks />} />
-              </Route>
-            </Route>
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </TooltipProvider>
-      </BrowserRouter>
-    </DataProvider>
+          </Route>
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </TooltipProvider>
+    </BrowserRouter>
   </AuthProvider>
 )
 

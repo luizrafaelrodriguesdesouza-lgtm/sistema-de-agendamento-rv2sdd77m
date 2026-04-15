@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-15T14:23:49.012Z",
+  "generatedAt": "2026-04-15T14:54:05.729Z",
   "collections": [
     {
       "name": "users",
@@ -63,6 +63,43 @@
           "type": "text",
           "required": false,
           "system": false
+        },
+        {
+          "name": "bio",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "especialidades",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "cnpj",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "empresa",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "comissao",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "proprietario_id",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "users"
         }
       ],
       "indexes": [
@@ -137,6 +174,210 @@
           "name": "response",
           "type": "text",
           "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "servicos",
+      "type": "base",
+      "apiRules": {
+        "list": "",
+        "view": "",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "nome",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "descricao",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "preco",
+          "type": "number",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "duracao",
+          "type": "number",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "ativo",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "profissional_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "horarios_disponiveis",
+      "type": "base",
+      "apiRules": {
+        "list": "",
+        "view": "",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "profissional_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "dia_semana",
+          "type": "number",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "hora_inicio",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "hora_fim",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "agendamentos",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "cliente_id",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "cliente_nome",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "cliente_email",
+          "type": "email",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "cliente_telefone",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "profissional_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "servico_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "servicos"
+        },
+        {
+          "name": "data",
+          "type": "date",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["pendente", "confirmado", "cancelado", "concluido"]
+        },
+        {
+          "name": "referencia",
+          "type": "text",
+          "required": true,
           "system": false
         },
         {

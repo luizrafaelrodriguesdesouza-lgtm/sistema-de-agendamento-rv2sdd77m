@@ -12,18 +12,62 @@ import {
 } from '@/components/ui/select'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { useToast } from '@/hooks/use-toast'
+import pb from '@/lib/pocketbase/client'
+import { getErrorMessage } from '@/lib/pocketbase/errors'
 
 export default function Register() {
   const [step, setStep] = useState(1)
   const [role, setRole] = useState('cliente')
+
+  const [name, setName] = useState('')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+
+  const [empresa, setEmpresa] = useState('')
+  const [cnpj, setCnpj] = useState('')
+
+  const [bio, setBio] = useState('')
+  const [especialidades, setEspecialidades] = useState('')
+
+  const [loading, setLoading] = useState(false)
+
   const navigate = useNavigate()
   const { toast } = useToast()
 
-  const handleFinish = (e: React.FormEvent) => {
+  const handleFinish = async (e: React.FormEvent) => {
     e.preventDefault()
-    toast({ title: 'Cadastro realizado com sucesso!' })
-    if (role === 'cliente') navigate('/login')
-    else navigate('/pendente')
+    setLoading(true)
+
+    try {
+      await pb.collection('users').create({
+        email,
+        password,
+        passwordConfirm: password,
+        name,
+        tipo: role,
+        status_aprovacao: role === 'cliente' ? 'aprovado' : 'pendente',
+        empresa: role === 'proprietario' ? empresa : '',
+        cnpj: role === 'proprietario' ? cnpj : '',
+        bio: role === 'profissional' ? bio : '',
+        especialidades: role === 'profissional' ? especialidades : '',
+      })
+
+      if (role === 'cliente') {
+        await pb.collection('users').authWithPassword(email, password)
+      }
+
+      toast({ title: 'Cadastro realizado com sucesso!' })
+      if (role === 'cliente') navigate('/meus-agendamentos')
+      else navigate('/pendente')
+    } catch (err: any) {
+      toast({
+        title: 'Erro ao cadastrar',
+        description: getErrorMessage(err),
+        variant: 'destructive',
+      })
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -49,15 +93,32 @@ export default function Register() {
               <div className="space-y-4 animate-fade-in">
                 <div className="space-y-2">
                   <Label>Nome Completo</Label>
-                  <Input required className="h-12" />
+                  <Input
+                    required
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="h-12"
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label>E-mail</Label>
-                  <Input type="email" required className="h-12" />
+                  <Input
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="h-12"
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label>Senha</Label>
-                  <Input type="password" required className="h-12" />
+                  <Input
+                    type="password"
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="h-12"
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label>Qual é o seu perfil?</Label>
@@ -83,11 +144,21 @@ export default function Register() {
                   <>
                     <div className="space-y-2">
                       <Label>Nome da Clínica/Empresa</Label>
-                      <Input required className="h-12" />
+                      <Input
+                        required
+                        value={empresa}
+                        onChange={(e) => setEmpresa(e.target.value)}
+                        className="h-12"
+                      />
                     </div>
                     <div className="space-y-2">
                       <Label>CNPJ</Label>
-                      <Input required className="h-12" />
+                      <Input
+                        required
+                        value={cnpj}
+                        onChange={(e) => setCnpj(e.target.value)}
+                        className="h-12"
+                      />
                     </div>
                   </>
                 )}
@@ -95,11 +166,22 @@ export default function Register() {
                   <>
                     <div className="space-y-2">
                       <Label>Bio (Resumo Profissional)</Label>
-                      <Input required className="h-12" />
+                      <Input
+                        required
+                        value={bio}
+                        onChange={(e) => setBio(e.target.value)}
+                        className="h-12"
+                      />
                     </div>
                     <div className="space-y-2">
                       <Label>Especialidades</Label>
-                      <Input placeholder="Ex: Estética, Massagem" required className="h-12" />
+                      <Input
+                        placeholder="Ex: Estética, Massagem"
+                        required
+                        value={especialidades}
+                        onChange={(e) => setEspecialidades(e.target.value)}
+                        className="h-12"
+                      />
                     </div>
                   </>
                 )}
@@ -118,8 +200,8 @@ export default function Register() {
                   >
                     Voltar
                   </Button>
-                  <Button type="submit" className="flex-1 h-12">
-                    Finalizar Cadastro
+                  <Button type="submit" disabled={loading} className="flex-1 h-12">
+                    {loading ? 'Processando...' : 'Finalizar Cadastro'}
                   </Button>
                 </div>
               </div>
