@@ -5,6 +5,7 @@ import { TooltipProvider } from '@/components/ui/tooltip'
 
 import Layout from './components/Layout'
 import DashboardLayout from './components/DashboardLayout'
+import { AdminRoute } from './components/AdminRoute'
 
 import Index from './pages/Index'
 import Login from './pages/Login'
@@ -14,7 +15,9 @@ import Tracking from './pages/Tracking'
 import ClientDashboard from './pages/ClientDashboard'
 import ProfessionalDashboard from './pages/ProfessionalDashboard'
 import OwnerDashboard from './pages/OwnerDashboard'
-import MasterDashboard from './pages/MasterDashboard'
+import AdminDashboard from './pages/admin/AdminDashboard'
+import AdminApprovals from './pages/admin/AdminApprovals'
+import AdminWebhooks from './pages/admin/AdminWebhooks'
 import NotFound from './pages/NotFound'
 
 import { AuthProvider } from './hooks/use-auth'
@@ -39,7 +42,11 @@ const App = () => (
             <Route element={<DashboardLayout />}>
               <Route path="/dashboard/profissional" element={<ProfessionalDashboard />} />
               <Route path="/dashboard/proprietario" element={<OwnerDashboard />} />
-              <Route path="/dashboard/master" element={<MasterDashboard />} />
+              <Route element={<AdminRoute />}>
+                <Route path="/admin/dashboard" element={<AdminDashboard />} />
+                <Route path="/admin/approvals" element={<AdminApprovals />} />
+                <Route path="/admin/webhooks" element={<AdminWebhooks />} />
+              </Route>
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>

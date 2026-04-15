@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom'
-import { Calendar, Settings, BarChart } from 'lucide-react'
+import { Calendar, Settings, BarChart, Users, Globe } from 'lucide-react'
 import {
   Sidebar,
   SidebarContent,
@@ -15,6 +15,7 @@ import useAuthStore from '@/stores/useAuthStore'
 export function AppSidebar() {
   const { user } = useAuthStore()
   const location = useLocation()
+  const userRole = (user as any)?.tipo || (user as any)?.role
 
   return (
     <Sidebar variant="inset">
@@ -23,7 +24,7 @@ export function AppSidebar() {
           <SidebarGroupLabel className="mt-4">Menu Principal</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {user?.role === 'profissional' && (
+              {userRole === 'profissional' && (
                 <SidebarMenuItem>
                   <SidebarMenuButton
                     asChild
@@ -35,7 +36,7 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               )}
-              {user?.role === 'proprietario' && (
+              {userRole === 'proprietario' && (
                 <SidebarMenuItem>
                   <SidebarMenuButton
                     asChild
@@ -47,14 +48,30 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               )}
-              {user?.role === 'master' && (
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={location.pathname === '/dashboard/master'}>
-                    <Link to="/dashboard/master">
-                      <Settings /> Administração Master
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
+              {userRole === 'master' && (
+                <>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild isActive={location.pathname === '/admin/dashboard'}>
+                      <Link to="/admin/dashboard">
+                        <Settings /> Dashboard Master
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild isActive={location.pathname === '/admin/approvals'}>
+                      <Link to="/admin/approvals">
+                        <Users /> Aprovações
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild isActive={location.pathname === '/admin/webhooks'}>
+                      <Link to="/admin/webhooks">
+                        <Globe /> Webhooks
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                </>
               )}
             </SidebarMenu>
           </SidebarGroupContent>

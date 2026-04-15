@@ -52,6 +52,8 @@ export default function Login() {
 
     if (user.tipo === 'cliente') {
       navigate('/meus-agendamentos')
+    } else if (user.tipo === 'master') {
+      navigate('/admin/dashboard')
     } else {
       navigate(`/dashboard/${user.tipo}`)
     }
