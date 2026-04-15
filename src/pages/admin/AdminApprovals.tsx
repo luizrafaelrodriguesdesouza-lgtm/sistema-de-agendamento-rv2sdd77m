@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { useRealtime } from '@/hooks/use-realtime'
 import { Input } from '@/components/ui/input'
 import { useToast } from '@/hooks/use-toast'
 import pb from '@/lib/pocketbase/client'
@@ -26,7 +27,7 @@ export default function AdminApprovals() {
     try {
       setLoading(true)
       const records = await pb.collection('users').getFullList({
-        filter: "tipo = 'proprietario' && status_aprovacao = 'pendente'",
+        filter: "status_aprovacao = 'pendente' && tipo != 'master'",
         sort: '-created',
       })
       setUsers(records)
@@ -41,10 +42,14 @@ export default function AdminApprovals() {
     loadPending()
   }, [])
 
+  useRealtime('users', () => {
+    loadPending()
+  })
+
   const handleApprove = async (id: string) => {
     try {
       await pb.collection('users').update(id, { status_aprovacao: 'aprovado' })
-      toast({ title: 'Aprovado', description: 'Proprietário aprovado com sucesso.' })
+      toast({ title: 'Aprovado', description: 'Usuário aprovado com sucesso.' })
       loadPending()
     } catch (e) {
       toast({ title: 'Erro', description: 'Falha ao aprovar.', variant: 'destructive' })
@@ -58,7 +63,7 @@ export default function AdminApprovals() {
         status_aprovacao: 'rejeitado',
         motivo_rejeicao: rejectReason,
       })
-      toast({ title: 'Rejeitado', description: 'Proprietário rejeitado.' })
+      toast({ title: 'Rejeitado', description: 'Usuário rejeitado.' })
       setRejectingUser(null)
       setRejectReason('')
       loadPending()
@@ -70,9 +75,9 @@ export default function AdminApprovals() {
   return (
     <div className="space-y-8 animate-fade-in">
       <div>
-        <h2 className="text-3xl font-bold text-slate-800">Aprovações de Proprietários</h2>
+        <h2 className="text-3xl font-bold text-slate-800">Aprovações de Contas</h2>
         <p className="text-slate-500 mt-1">
-          Analise as solicitações de novos proprietários de clínicas.
+          Analise as solicitações de novos proprietários e profissionais.
         </p>
       </div>
 
@@ -103,9 +108,22 @@ export default function AdminApprovals() {
                       <Badge variant="secondary" className="bg-amber-100 text-amber-700">
                         Pendente
                       </Badge>
+                      <Badge variant="outline" className="capitalize">
+                        {user.tipo}
+                      </Badge>
                     </div>
                     <p className="text-sm text-slate-500">{user.email}</p>
-                  </div>
+                    {user.tipo === 'proprietario' && user.empresa && (
+                      <p className="text-xs text-slate-400 mt-1">
+                        Empresa: {user.empresa} (CNPJ: {user.cnpj})
+                      </p>
+                    )}
+                    {user.tipo === 'profissional' && user.especialidades && (
+                      <p className="text-xs text-slate-400 mt-1">
+                        Especialidades: {user.especialidades}
+                      </p>
+                    )}
+                  </div>{' '}
                   <div className="flex gap-2 w-full sm:w-auto">
                     <Button
                       size="sm"
