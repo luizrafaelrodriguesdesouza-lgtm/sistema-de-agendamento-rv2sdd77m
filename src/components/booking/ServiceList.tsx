@@ -1,0 +1,36 @@
+import { Service } from '@/stores/types'
+import { Card, CardContent } from '@/components/ui/card'
+
+export function ServiceList({
+  services,
+  onSelect,
+}: {
+  services: Service[]
+  onSelect: (s: Service) => void
+}) {
+  if (services.length === 0)
+    return <p className="text-center py-8 text-muted-foreground">Nenhum serviço disponível.</p>
+
+  return (
+    <div className="grid grid-cols-1 gap-4 animate-fade-in-up">
+      {services.map((s) => (
+        <Card
+          key={s.id}
+          className="cursor-pointer hover:-translate-y-0.5 hover:shadow-md hover:border-primary/50 transition-all"
+          onClick={() => onSelect(s)}
+        >
+          <CardContent className="p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div className="flex-1">
+              <h4 className="font-bold text-lg text-slate-800">{s.name}</h4>
+              <p className="text-sm text-slate-500 mt-1">{s.description}</p>
+            </div>
+            <div className="text-left sm:text-right bg-primary/5 rounded-lg p-3 min-w-[120px]">
+              <p className="font-bold text-primary text-xl">R$ {s.price.toFixed(2)}</p>
+              <p className="text-xs font-medium text-slate-500">{s.duration} minutos</p>
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  )
+}
