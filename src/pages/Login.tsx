@@ -4,28 +4,57 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import useAuthStore from '@/stores/useAuthStore'
+import { useAuth } from '@/hooks/use-auth'
 import { useToast } from '@/hooks/use-toast'
+import { getErrorMessage } from '@/lib/pocketbase/errors'
 
 export default function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const { setUser } = useAuthStore()
+  const [isLoading, setIsLoading] = useState(false)
+  const { signIn } = useAuth()
   const navigate = useNavigate()
   const { toast } = useToast()
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-    let role: any = 'cliente'
-    if (email.includes('prof')) role = 'profissional'
-    if (email.includes('prop')) role = 'proprietario'
-    if (email.includes('master')) role = 'master'
+    setIsLoading(true)
 
-    setUser({ id: 'u1', name: 'Usuário Teste', email, role, status: 'aprovado' })
+    const { error, user } = await signIn(email, password)
+
+    setIsLoading(false)
+
+    if (error || !user) {
+      toast({
+        title: 'Erro ao acessar conta',
+        description:
+          getErrorMessage(error) || 'Credenciais inválidas. Verifique seu e-mail e senha.',
+        variant: 'destructive',
+      })
+      return
+    }
+
     toast({ title: 'Bem-vindo de volta!' })
 
-    if (role === 'cliente') navigate('/meus-agendamentos')
-    else navigate(`/dashboard/${role}`)
+    if (user.tipo !== 'master' && user.status_aprovacao === 'pendente') {
+      navigate('/pendente')
+      return
+    }
+
+    if (user.tipo !== 'master' && user.status_aprovacao === 'rejeitado') {
+      toast({
+        title: 'Acesso negado',
+        description: 'Sua conta não foi aprovada pelo administrador.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    if (user.tipo === 'cliente') {
+      navigate('/meus-agendamentos')
+    } else {
+      navigate(`/dashboard/${user.tipo}`)
+    }
   }
 
   return (
@@ -47,12 +76,10 @@ export default function Login() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="exemplo: prop@clinica.com"
+                placeholder="exemplo@email.com"
                 className="h-12"
+                disabled={isLoading}
               />
-              <p className="text-xs text-muted-foreground">
-                Dica: use 'prof', 'prop' ou 'master' no e-mail para testar os painéis.
-              </p>
             </div>
             <div className="space-y-2">
               <Label>Senha</Label>
@@ -63,10 +90,11 @@ export default function Login() {
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
                 className="h-12"
+                disabled={isLoading}
               />
             </div>
-            <Button type="submit" className="w-full h-12 text-md">
-              Entrar
+            <Button type="submit" className="w-full h-12 text-md" disabled={isLoading}>
+              {isLoading ? 'Entrando...' : 'Entrar'}
             </Button>
           </form>
           <p className="mt-6 text-center text-sm text-slate-500">

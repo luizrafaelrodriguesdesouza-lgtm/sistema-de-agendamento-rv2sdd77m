@@ -4,8 +4,8 @@ export interface User {
   id: string
   name: string
   email: string
-  role: Role
-  status: 'aprovado' | 'pendente' | 'rejeitado'
+  tipo: Role
+  status_aprovacao: 'aprovado' | 'pendente' | 'rejeitado'
 }
 
 export interface Professional extends User {

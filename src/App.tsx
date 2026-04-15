@@ -17,7 +17,7 @@ import OwnerDashboard from './pages/OwnerDashboard'
 import MasterDashboard from './pages/MasterDashboard'
 import NotFound from './pages/NotFound'
 
-import { AuthProvider } from './stores/useAuthStore'
+import { AuthProvider } from './hooks/use-auth'
 import { DataProvider } from './stores/useDataStore'
 
 const App = () => (
