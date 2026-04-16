@@ -7,7 +7,9 @@ import useAuthStore from '@/stores/useAuthStore'
 export default function DashboardLayout() {
   const { user } = useAuthStore()
 
-  if (!user || user.role === 'cliente') {
+  const userRole = (user as any)?.tipo || (user as any)?.role
+
+  if (!user || userRole === 'cliente') {
     return <Navigate to="/login" replace />
   }
 
@@ -15,13 +17,13 @@ export default function DashboardLayout() {
     <SidebarProvider>
       <div className="flex min-h-screen w-full bg-background font-sans text-foreground selection:bg-primary/20">
         <AppSidebar />
-        <SidebarInset className="flex w-full flex-col flex-1 bg-background">
+        <SidebarInset className="flex w-full flex-col flex-1 bg-background overflow-hidden">
           <Header />
-          <div className="p-4 flex items-center gap-3 border-b bg-white shadow-sm md:hidden">
+          <div className="p-4 flex items-center gap-3 border-b bg-white shadow-sm md:hidden shrink-0">
             <SidebarTrigger />
             <span className="font-semibold text-primary">Painel de Gestão</span>
           </div>
-          <main className="flex-1 p-4 md:p-8">
+          <main className="flex-1 p-4 md:p-8 overflow-y-auto">
             <Outlet />
           </main>
         </SidebarInset>
