@@ -7,46 +7,58 @@ import { UserForm } from './UserForm'
 import { Progress } from '@/components/ui/progress'
 import pb from '@/lib/pocketbase/client'
 
-export function BookingFlow({ onCancel }: { onCancel: () => void }) {
+export function BookingFlow({
+  proprietarioId,
+  onCancel,
+}: {
+  proprietarioId: string
+  onCancel: () => void
+}) {
   const [step, setStep] = useState(1)
-  const [selectedProf, setSelectedProf] = useState<any | null>(null)
   const [selectedService, setSelectedService] = useState<any | null>(null)
+  const [selectedProf, setSelectedProf] = useState<any | null>(null)
   const [dateTime, setDateTime] = useState<{ date: Date; time: string } | null>(null)
 
-  const [professionals, setProfessionals] = useState<any[]>([])
   const [services, setServices] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
+  const [professionals, setProfessionals] = useState<any[]>([])
+  const [loadingServices, setLoadingServices] = useState(true)
+  const [loadingProfs, setLoadingProfs] = useState(false)
 
   useEffect(() => {
-    const fetchProfs = async () => {
-      try {
-        const profs = await pb.collection('users').getFullList({
-          filter: "tipo = 'profissional' && status_aprovacao = 'aprovado'",
-        })
-        setProfessionals(profs)
-      } catch (error) {
-        console.error(error)
-      } finally {
-        setLoading(false)
-      }
-    }
-    fetchProfs()
-  }, [])
-
-  useEffect(() => {
-    if (!selectedProf) return
     const fetchServices = async () => {
       try {
         const servs = await pb.collection('servicos').getFullList({
-          filter: `profissional_id = '${selectedProf.id}' && ativo = true`,
+          filter: `proprietario_id = '${proprietarioId}' && ativo = true`,
         })
         setServices(servs)
       } catch (error) {
         console.error(error)
+      } finally {
+        setLoadingServices(false)
       }
     }
     fetchServices()
-  }, [selectedProf])
+  }, [proprietarioId])
+
+  useEffect(() => {
+    if (!selectedService) return
+    const fetchProfs = async () => {
+      setLoadingProfs(true)
+      try {
+        let filter = `tipo = 'profissional' && status_aprovacao = 'aprovado' && proprietario_id = '${proprietarioId}'`
+        if (selectedService.profissional_id) {
+          filter += ` && id = '${selectedService.profissional_id}'`
+        }
+        const profs = await pb.collection('users').getFullList({ filter })
+        setProfessionals(profs)
+      } catch (error) {
+        console.error(error)
+      } finally {
+        setLoadingProfs(false)
+      }
+    }
+    fetchProfs()
+  }, [selectedService, proprietarioId])
 
   const handleNext = () => setStep((s) => s + 1)
   const handleBack = () => {
@@ -57,9 +69,9 @@ export function BookingFlow({ onCancel }: { onCancel: () => void }) {
   const getStepTitle = () => {
     switch (step) {
       case 1:
-        return 'Escolha o Profissional'
-      case 2:
         return 'Escolha o Serviço'
+      case 2:
+        return 'Escolha o Profissional'
       case 3:
         return 'Selecione Data e Hora'
       case 4:
@@ -82,14 +94,34 @@ export function BookingFlow({ onCancel }: { onCancel: () => void }) {
       </div>
 
       {step === 1 && (
+        <div className="w-full">
+          {loadingServices ? (
+            <p className="text-center py-8 text-slate-500">Carregando serviços...</p>
+          ) : services.length === 0 ? (
+            <div className="text-center py-8 bg-slate-50 rounded-xl border">
+              <p className="text-slate-500">Nenhum serviço disponível no momento.</p>
+            </div>
+          ) : (
+            <ServiceList
+              services={services}
+              onSelect={(s) => {
+                setSelectedService(s)
+                handleNext()
+              }}
+            />
+          )}
+        </div>
+      )}
+
+      {step === 2 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-          {loading ? (
+          {loadingProfs ? (
             <p className="col-span-full text-center py-8 text-slate-500">
               Carregando profissionais...
             </p>
           ) : professionals.length === 0 ? (
             <div className="col-span-full text-center py-8 bg-slate-50 rounded-xl border">
-              <p className="text-slate-500">Nenhum profissional disponível no momento.</p>
+              <p className="text-slate-500">Nenhum profissional disponível para este serviço.</p>
             </div>
           ) : (
             professionals.map((p) => (
@@ -106,19 +138,10 @@ export function BookingFlow({ onCancel }: { onCancel: () => void }) {
         </div>
       )}
 
-      {step === 2 && (
-        <ServiceList
-          services={services}
-          onSelect={(s) => {
-            setSelectedService(s)
-            handleNext()
-          }}
-        />
-      )}
-
       {step === 3 && (
         <DateTimePicker
           professionalId={selectedProf?.id}
+          serviceDuration={selectedService?.duracao || 30}
           onSelect={(dt) => {
             setDateTime(dt)
             handleNext()

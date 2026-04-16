@@ -8,6 +8,7 @@ import DashboardLayout from './components/DashboardLayout'
 import { AdminRoute } from './components/AdminRoute'
 
 import Index from './pages/Index'
+import Booking from './pages/Booking'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import PendingApproval from './pages/PendingApproval'
@@ -36,6 +37,7 @@ const App = () => (
         <Routes>
           <Route element={<Layout />}>
             <Route path="/" element={<Index />} />
+            <Route path="/agendar/:proprietarioId" element={<Booking />} />
             <Route path="/login" element={<Login />} />
             <Route path="/cadastro" element={<Register />} />
             <Route path="/pendente" element={<PendingApproval />} />
