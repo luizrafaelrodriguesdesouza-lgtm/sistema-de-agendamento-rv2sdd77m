@@ -44,28 +44,72 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {userRole === 'profissional' && (
-                <SidebarMenuItem>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={location.pathname === '/dashboard/profissional'}
-                  >
-                    <Link to="/dashboard/profissional">
-                      <Calendar /> Agenda do Profissional
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
+                <>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={location.pathname === '/dashboard/profissional'}
+                    >
+                      <Link to="/dashboard/profissional">
+                        <Calendar /> Resumo
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={location.pathname === '/dashboard/profissional/agenda'}
+                    >
+                      <Link to="/dashboard/profissional/agenda">
+                        <Calendar /> Minha Agenda
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={location.pathname === '/dashboard/profissional/servicos'}
+                    >
+                      <Link to="/dashboard/profissional/servicos">
+                        <FileText /> Meus Serviços
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                </>
               )}
               {userRole === 'proprietario' && (
-                <SidebarMenuItem>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={location.pathname === '/dashboard/proprietario'}
-                  >
-                    <Link to="/dashboard/proprietario">
-                      <BarChart /> Visão Geral da Clínica
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
+                <>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={location.pathname === '/dashboard/proprietario'}
+                    >
+                      <Link to="/dashboard/proprietario">
+                        <BarChart /> Visão Geral da Clínica
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={location.pathname === '/dashboard/proprietario/equipe'}
+                    >
+                      <Link to="/dashboard/proprietario/equipe">
+                        <Users /> Equipe
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={location.pathname === '/dashboard/proprietario/servicos'}
+                    >
+                      <Link to="/dashboard/proprietario/servicos">
+                        <FileText /> Catálogo de Serviços
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                </>
               )}
               {userRole === 'master' && (
                 <>

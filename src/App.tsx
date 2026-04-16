@@ -14,7 +14,11 @@ import PendingApproval from './pages/PendingApproval'
 import Tracking from './pages/Tracking'
 import ClientDashboard from './pages/ClientDashboard'
 import ProfessionalDashboard from './pages/ProfessionalDashboard'
+import ProfessionalServices from './pages/ProfessionalServices'
+import ProfessionalSchedule from './pages/ProfessionalSchedule'
 import OwnerDashboard from './pages/OwnerDashboard'
+import OwnerTeam from './pages/OwnerTeam'
+import OwnerServices from './pages/OwnerServices'
 import AdminDashboard from './pages/admin/AdminDashboard'
 import AdminApprovals from './pages/admin/AdminApprovals'
 import AdminWebhooks from './pages/admin/AdminWebhooks'
@@ -40,7 +44,11 @@ const App = () => (
           </Route>
           <Route element={<DashboardLayout />}>
             <Route path="/dashboard/profissional" element={<ProfessionalDashboard />} />
+            <Route path="/dashboard/profissional/servicos" element={<ProfessionalServices />} />
+            <Route path="/dashboard/profissional/agenda" element={<ProfessionalSchedule />} />
             <Route path="/dashboard/proprietario" element={<OwnerDashboard />} />
+            <Route path="/dashboard/proprietario/equipe" element={<OwnerTeam />} />
+            <Route path="/dashboard/proprietario/servicos" element={<OwnerServices />} />
             <Route element={<AdminRoute />}>
               <Route path="/admin/dashboard" element={<AdminDashboard />} />
               <Route path="/admin/approvals" element={<AdminApprovals />} />
