@@ -3,21 +3,36 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
 import { Bar, BarChart, XAxis, YAxis, CartesianGrid } from 'recharts'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { useAuth } from '@/hooks/use-auth'
 import pb from '@/lib/pocketbase/client'
 import { useRealtime } from '@/hooks/use-realtime'
+import useMasterStore from '@/stores/useMasterStore'
+import { useToast } from '@/hooks/use-toast'
+import { Copy } from 'lucide-react'
 
 export default function OwnerDashboard() {
   const { user } = useAuth()
+  const { selectedOwnerId } = useMasterStore()
+  const { toast } = useToast()
   const [professionals, setProfessionals] = useState<any[]>([])
   const [appointments, setAppointments] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
   const loadData = async () => {
     if (!user) return
+
+    const targetId = user.tipo === 'master' ? selectedOwnerId : user.id
+    if (user.tipo === 'master' && !targetId) {
+      setProfessionals([])
+      setAppointments([])
+      setLoading(false)
+      return
+    }
+
     try {
       const profs = await pb.collection('users').getFullList({
-        filter: `proprietario_id = '${user.id}'`,
+        filter: `proprietario_id = '${targetId}'`,
       })
       setProfessionals(profs)
 
@@ -40,7 +55,7 @@ export default function OwnerDashboard() {
 
   useEffect(() => {
     loadData()
-  }, [user])
+  }, [user, selectedOwnerId])
 
   useRealtime('users', () => loadData())
   useRealtime('agendamentos', () => loadData())
@@ -76,18 +91,45 @@ export default function OwnerDashboard() {
 
   return (
     <div className="space-y-8 animate-fade-in-up">
-      <div>
-        <h2 className="text-3xl font-bold text-slate-800">Visão Geral da Clínica</h2>
-        <p className="text-slate-500 mt-1">Métricas e performance da sua empresa.</p>
+      <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+        <div>
+          <h2 className="text-3xl font-bold text-slate-800">Visão Geral da Clínica</h2>
+          <p className="text-slate-500 mt-1">Métricas e performance da sua empresa.</p>
+        </div>
+        {user?.tipo === 'proprietario' && user?.codigo_acesso && (
+          <div className="flex items-center gap-3 bg-primary/5 p-3 rounded-lg border border-primary/20">
+            <div>
+              <p className="text-xs font-medium text-slate-500">Código da Clínica (Convite)</p>
+              <p className="text-lg font-bold text-primary tracking-wider">{user.codigo_acesso}</p>
+            </div>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => {
+                navigator.clipboard.writeText(user.codigo_acesso || '')
+                toast({ title: 'Código copiado!' })
+              }}
+            >
+              <Copy className="w-4 h-4" />
+            </Button>
+          </div>
+        )}
       </div>
 
       {loading ? (
         <div className="py-20 text-center text-slate-500">Carregando métricas...</div>
+      ) : user?.tipo === 'master' && !selectedOwnerId ? (
+        <div className="py-20 text-center bg-white rounded-2xl border border-dashed shadow-sm">
+          <p className="text-slate-500 mb-2">Nenhuma clínica selecionada.</p>
+          <p className="text-sm text-slate-400">
+            Selecione uma clínica no topo da página para ver seus dados.
+          </p>
+        </div>
       ) : professionals.length === 0 ? (
         <div className="py-20 text-center bg-white rounded-2xl border border-dashed shadow-sm">
-          <p className="text-slate-500 mb-2">Nenhum profissional vinculado à sua clínica.</p>
+          <p className="text-slate-500 mb-2">Nenhum profissional vinculado a esta clínica.</p>
           <p className="text-sm text-slate-400">
-            Cadastre profissionais e vincule-os para ver os dados.
+            Convide profissionais usando o Código da Clínica.
           </p>
         </div>
       ) : (

@@ -1,10 +1,31 @@
+import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/hooks/use-auth'
 import { Button } from '@/components/ui/button'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import useMasterStore from '@/stores/useMasterStore'
+import pb from '@/lib/pocketbase/client'
 
 export function Header() {
   const { user, signOut } = useAuth()
   const navigate = useNavigate()
+  const { selectedOwnerId, setSelectedOwnerId } = useMasterStore()
+  const [owners, setOwners] = useState<any[]>([])
+
+  useEffect(() => {
+    if (user?.tipo === 'master') {
+      pb.collection('users')
+        .getFullList({ filter: "tipo = 'proprietario'" })
+        .then(setOwners)
+        .catch(console.error)
+    }
+  }, [user])
 
   const handleLogout = () => {
     signOut()
@@ -21,6 +42,24 @@ export function Header() {
           <span className="text-xl font-bold text-primary">EstéticaPro</span>
         </Link>
         <div className="flex items-center gap-4">
+          {user?.tipo === 'master' && (
+            <Select
+              value={selectedOwnerId || 'all'}
+              onValueChange={(v) => setSelectedOwnerId(v === 'all' ? null : v)}
+            >
+              <SelectTrigger className="w-[200px] h-9">
+                <SelectValue placeholder="Todas as Clínicas" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas as Clínicas</SelectItem>
+                {owners.map((o) => (
+                  <SelectItem key={o.id} value={o.id}>
+                    {o.empresa || o.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
           {user ? (
             <>
               <span className="hidden md:inline text-sm text-muted-foreground">

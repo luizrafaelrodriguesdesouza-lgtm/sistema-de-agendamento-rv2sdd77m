@@ -28,14 +28,45 @@ export default function Register() {
 
   const [bio, setBio] = useState('')
   const [especialidades, setEspecialidades] = useState('')
+  const [codigoAcesso, setCodigoAcesso] = useState('')
+  const [ownerInfo, setOwnerInfo] = useState<{ id: string; empresa: string } | null>(null)
+  const [validatingCode, setValidatingCode] = useState(false)
 
   const [loading, setLoading] = useState(false)
 
   const navigate = useNavigate()
   const { toast } = useToast()
 
+  const handleValidateCode = async () => {
+    if (!codigoAcesso) return
+    setValidatingCode(true)
+    try {
+      const res = await pb.send(`/backend/v1/validate-code/${codigoAcesso}`, { method: 'GET' })
+      setOwnerInfo(res)
+      toast({ title: 'Código válido!', description: `Clínica: ${res.empresa}` })
+    } catch (err: any) {
+      setOwnerInfo(null)
+      toast({
+        title: 'Código inválido',
+        description: 'Verifique o código e tente novamente.',
+        variant: 'destructive',
+      })
+    } finally {
+      setValidatingCode(false)
+    }
+  }
+
   const handleFinish = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (role === 'profissional' && !ownerInfo) {
+      toast({
+        title: 'Atenção',
+        description: 'Valide o código da clínica antes de prosseguir.',
+        variant: 'destructive',
+      })
+      return
+    }
+
     setLoading(true)
 
     try {
@@ -50,14 +81,16 @@ export default function Register() {
         cnpj: role === 'proprietario' ? cnpj : '',
         bio: role === 'profissional' ? bio : '',
         especialidades: role === 'profissional' ? especialidades : '',
+        proprietario_id: role === 'profissional' ? ownerInfo?.id : '',
       })
 
-      if (role === 'cliente') {
+      if (role === 'cliente' || role === 'profissional') {
         await pb.collection('users').authWithPassword(email, password)
       }
 
       toast({ title: 'Cadastro realizado com sucesso!' })
       if (role === 'cliente') navigate('/meus-agendamentos')
+      else if (role === 'profissional') navigate('/dashboard/profissional/servicos')
       else navigate('/pendente')
     } catch (err: any) {
       toast({
@@ -164,6 +197,32 @@ export default function Register() {
                 )}
                 {role === 'profissional' && (
                   <>
+                    <div className="space-y-2">
+                      <Label>Código da Clínica</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          required
+                          placeholder="Ex: A1B2C3"
+                          value={codigoAcesso}
+                          onChange={(e) => setCodigoAcesso(e.target.value)}
+                          className="h-12 uppercase"
+                        />
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          className="h-12"
+                          onClick={handleValidateCode}
+                          disabled={validatingCode || !codigoAcesso}
+                        >
+                          {validatingCode ? '...' : 'Validar'}
+                        </Button>
+                      </div>
+                      {ownerInfo && (
+                        <p className="text-sm text-emerald-600 font-medium">
+                          ✓ Vinculado a: {ownerInfo.empresa}
+                        </p>
+                      )}
+                    </div>
                     <div className="space-y-2">
                       <Label>Bio (Resumo Profissional)</Label>
                       <Input
