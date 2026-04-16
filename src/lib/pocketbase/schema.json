@@ -1,14 +1,14 @@
 {
-  "generatedAt": "2026-04-16T11:38:59.793Z",
+  "generatedAt": "2026-04-16T11:47:12.673Z",
   "collections": [
     {
       "name": "users",
       "type": "auth",
       "apiRules": {
-        "list": "id = @request.auth.id",
-        "view": "id = @request.auth.id",
+        "list": "@request.auth.tipo = 'master' || id = @request.auth.id",
+        "view": "@request.auth.tipo = 'master' || id = @request.auth.id",
         "create": "",
-        "update": "id = @request.auth.id",
+        "update": "@request.auth.tipo = 'master' || id = @request.auth.id",
         "delete": "id = @request.auth.id"
       },
       "fields": [

@@ -94,7 +94,7 @@ export default function AdminApprovals() {
               <p className="text-sm text-slate-500">Carregando...</p>
             ) : users.length === 0 ? (
               <p className="text-sm text-slate-500 bg-slate-50 p-4 rounded-lg border text-center">
-                Nenhuma solicitação pendente.
+                Nenhuma pendência encontrada.
               </p>
             ) : (
               users.map((user) => (
