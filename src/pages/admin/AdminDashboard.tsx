@@ -5,6 +5,7 @@ import { Users, Globe, Building2, CalendarCheck, TrendingUp } from 'lucide-react
 import { Link } from 'react-router-dom'
 import useMasterStore from '@/stores/useMasterStore'
 import { Button } from '@/components/ui/button'
+import { UserManagement } from '@/components/admin/UserManagement'
 
 export default function AdminDashboard() {
   const { selectedOwnerId } = useMasterStore()
@@ -142,6 +143,18 @@ export default function AdminDashboard() {
             </CardContent>
           </Card>
         </Link>
+      </div>
+
+      <div className="pt-8 border-t border-slate-200 mt-8">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+          <div>
+            <h2 className="text-2xl font-bold text-slate-800">Gerenciamento de Usuários</h2>
+            <p className="text-slate-500 mt-1">
+              Gerencie os usuários cadastrados no sistema e remova registros indesejados.
+            </p>
+          </div>
+        </div>
+        <UserManagement />
       </div>
     </div>
   )
