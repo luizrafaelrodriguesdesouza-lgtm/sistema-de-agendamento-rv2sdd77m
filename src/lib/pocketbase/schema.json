@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-04-23T19:30:15.149Z",
+  "generatedAt": "2026-04-23T19:41:51.350Z",
   "collections": [
     {
       "name": "users",
       "type": "auth",
       "apiRules": {
-        "list": "@request.auth.tipo = 'master' || id = @request.auth.id || proprietario_id = @request.auth.id || id = @request.auth.proprietario_id",
-        "view": "@request.auth.tipo = 'master' || id = @request.auth.id",
+        "list": "@request.auth.tipo = 'master' || id = @request.auth.id || proprietario_id = @request.auth.id || id = @request.auth.proprietario_id || tipo = 'proprietario' || tipo = 'profissional'",
+        "view": "@request.auth.tipo = 'master' || id = @request.auth.id || tipo = 'proprietario' || tipo = 'profissional'",
         "create": "",
         "update": "@request.auth.tipo = 'master' || id = @request.auth.id || (@request.auth.tipo = 'proprietario' && proprietario_id = @request.auth.id)",
         "delete": "id = @request.auth.id"

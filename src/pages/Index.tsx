@@ -74,7 +74,7 @@ export default function Index() {
                         variant="secondary"
                         className="w-full mt-auto group-hover:bg-primary group-hover:text-primary-foreground transition-colors"
                       >
-                        Ver Serviços
+                        Agendar
                       </Button>
                     </div>
                   </CardContent>
