@@ -13,6 +13,7 @@ import pb from '@/lib/pocketbase/client'
 import { useAuth } from '@/hooks/use-auth'
 import { useRealtime } from '@/hooks/use-realtime'
 import { format } from 'date-fns'
+import { MessageCircle } from 'lucide-react'
 
 export default function ProfessionalDashboard() {
   const { user } = useAuth()
@@ -75,31 +76,59 @@ export default function ProfessionalDashboard() {
                   <TableHeader className="bg-slate-50">
                     <TableRow>
                       <TableHead>Paciente</TableHead>
+                      <TableHead>Serviço</TableHead>
                       <TableHead>Data / Hora</TableHead>
+                      <TableHead>Contato</TableHead>
                       <TableHead>Status</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {appointments.map((a) => (
-                      <TableRow key={a.id}>
-                        <TableCell className="font-medium">
-                          {a.expand?.cliente_id?.name || a.cliente_nome || 'Paciente'}
-                        </TableCell>
-                        <TableCell className="text-slate-600">
-                          {format(new Date(a.data), 'dd/MM/yyyy HH:mm')}
-                        </TableCell>
-                        <TableCell>
-                          <Badge
-                            variant={a.status === 'confirmado' ? 'default' : 'secondary'}
-                            className={
-                              a.status === 'confirmado' ? 'bg-emerald-500 hover:bg-emerald-600' : ''
-                            }
-                          >
-                            {a.status.toUpperCase()}
-                          </Badge>
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                    {appointments.map((a) => {
+                      const telefone = a.cliente_telefone || ''
+                      const cleanPhone = telefone.replace(/\D/g, '')
+                      const whatsappLink = cleanPhone ? `https://wa.me/${cleanPhone}` : null
+
+                      return (
+                        <TableRow key={a.id}>
+                          <TableCell className="font-medium">
+                            {a.expand?.cliente_id?.name || a.cliente_nome || 'Paciente'}
+                          </TableCell>
+                          <TableCell className="text-slate-600">
+                            {a.expand?.servico_id?.nome || 'Serviço não definido'}
+                          </TableCell>
+                          <TableCell className="text-slate-600">
+                            {format(new Date(a.data), 'dd/MM/yyyy HH:mm')}
+                          </TableCell>
+                          <TableCell>
+                            {whatsappLink ? (
+                              <a
+                                href={whatsappLink}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center text-emerald-600 hover:text-emerald-700 font-medium text-sm bg-emerald-50 px-2 py-1 rounded-md transition-colors"
+                              >
+                                <MessageCircle className="w-4 h-4 mr-1.5" />
+                                {telefone}
+                              </a>
+                            ) : (
+                              <span className="text-slate-400 text-sm">Não informado</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              variant={a.status === 'confirmado' ? 'default' : 'secondary'}
+                              className={
+                                a.status === 'confirmado'
+                                  ? 'bg-emerald-500 hover:bg-emerald-600'
+                                  : ''
+                              }
+                            >
+                              {a.status.toUpperCase()}
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })}
                   </TableBody>
                 </Table>
               </div>

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-23T19:41:51.350Z",
+  "generatedAt": "2026-04-23T19:49:34.157Z",
   "collections": [
     {
       "name": "users",
@@ -329,8 +329,8 @@
       "name": "agendamentos",
       "type": "base",
       "apiRules": {
-        "list": "@request.auth.id != ''",
-        "view": "@request.auth.id != ''",
+        "list": "@request.auth.id != '' && (cliente_id = @request.auth.id || profissional_id = @request.auth.id || @request.auth.tipo = 'master' || (@request.auth.tipo = 'proprietario' && profissional_id.proprietario_id = @request.auth.id))",
+        "view": "@request.auth.id != '' && (cliente_id = @request.auth.id || profissional_id = @request.auth.id || @request.auth.tipo = 'master' || (@request.auth.tipo = 'proprietario' && profissional_id.proprietario_id = @request.auth.id))",
         "create": "",
         "update": "@request.auth.id != ''",
         "delete": "@request.auth.id != ''"
