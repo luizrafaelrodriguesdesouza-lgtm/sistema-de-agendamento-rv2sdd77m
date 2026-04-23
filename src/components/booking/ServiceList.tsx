@@ -10,7 +10,7 @@ export function ServiceList({
   if (services.length === 0)
     return (
       <div className="text-center py-12 bg-slate-50 rounded-xl border border-dashed">
-        <p className="text-slate-500">Nenhum serviço cadastrado para este profissional.</p>
+        <p className="text-slate-500">Nenhum serviço disponível no momento.</p>
       </div>
     )
 

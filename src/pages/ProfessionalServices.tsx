@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Switch } from '@/components/ui/switch'
 import { useToast } from '@/hooks/use-toast'
 import pb from '@/lib/pocketbase/client'
 import { useAuth } from '@/hooks/use-auth'
@@ -20,13 +21,17 @@ export default function ProfessionalServices() {
     try {
       const proprietarioId = user.proprietario_id
 
+      if (!proprietarioId) {
+        setCatalogServices([])
+        setMyServices([])
+        return
+      }
+
       const [catalog, mine] = await Promise.all([
-        proprietarioId
-          ? pb.collection('servicos').getFullList({
-              filter: `proprietario_id = '${proprietarioId}' && profissional_id = ''`,
-              sort: 'nome',
-            })
-          : Promise.resolve([]),
+        pb.collection('servicos').getFullList({
+          filter: `proprietario_id = '${proprietarioId}' && profissional_id = ''`,
+          sort: 'nome',
+        }),
         pb.collection('servicos').getFullList({
           filter: `profissional_id = '${user.id}'`,
           sort: 'nome',
@@ -74,6 +79,18 @@ export default function ProfessionalServices() {
     }
   }
 
+  const handleToggleActive = async (id: string, currentActive: boolean) => {
+    try {
+      await pb.collection('servicos').update(id, { ativo: !currentActive })
+      toast({
+        title: 'Sucesso',
+        description: `Serviço ${!currentActive ? 'ativado' : 'desativado'}.`,
+      })
+    } catch (e: any) {
+      toast({ title: 'Erro', description: e.message, variant: 'destructive' })
+    }
+  }
+
   const myServiceNames = myServices.map((s) => s.nome)
 
   return (
@@ -84,6 +101,16 @@ export default function ProfessionalServices() {
           Selecione os serviços do catálogo da clínica que você oferece.
         </p>
       </div>
+
+      {!user?.proprietario_id && (
+        <div className="bg-amber-50 border border-amber-200 text-amber-800 p-4 rounded-xl">
+          <p className="font-semibold">Atenção</p>
+          <p className="text-sm">
+            Você ainda não está vinculado a nenhuma clínica. Peça o código de acesso ao proprietário
+            e atualize seu perfil.
+          </p>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <Card className="shadow-sm border-slate-200">
@@ -149,7 +176,9 @@ export default function ProfessionalServices() {
                 {myServices.map((s) => (
                   <li
                     key={s.id}
-                    className="flex justify-between items-center p-4 border rounded-xl bg-white shadow-sm"
+                    className={`flex justify-between items-center p-4 border rounded-xl shadow-sm transition-colors ${
+                      s.ativo ? 'bg-white' : 'bg-slate-50 opacity-75'
+                    }`}
                   >
                     <div>
                       <p className="font-bold text-slate-800">{s.nome}</p>
@@ -158,14 +187,25 @@ export default function ProfessionalServices() {
                         <span className="text-slate-400 font-normal ml-1">• {s.duracao} min</span>
                       </p>
                     </div>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="text-rose-500 hover:text-rose-700"
-                      onClick={() => handleRemove(s.id)}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+                    <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-medium text-slate-500">
+                          {s.ativo ? 'Ativo' : 'Inativo'}
+                        </span>
+                        <Switch
+                          checked={s.ativo}
+                          onCheckedChange={() => handleToggleActive(s.id, s.ativo)}
+                        />
+                      </div>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="text-rose-500 hover:text-rose-700"
+                        onClick={() => handleRemove(s.id)}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </li>
                 ))}
               </ul>
