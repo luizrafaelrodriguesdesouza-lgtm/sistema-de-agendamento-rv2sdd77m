@@ -1,5 +1,14 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { Calendar, Settings, BarChart, Users, Globe, LogOut, FileText } from 'lucide-react'
+import {
+  Calendar,
+  Settings,
+  BarChart,
+  Users,
+  Globe,
+  LogOut,
+  FileText,
+  PieChart,
+} from 'lucide-react'
 import {
   Sidebar,
   SidebarContent,
@@ -109,6 +118,16 @@ export function AppSidebar() {
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={location.pathname === '/dashboard/proprietario/relatorios'}
+                    >
+                      <Link to="/dashboard/proprietario/relatorios">
+                        <PieChart /> Relatórios
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
                 </>
               )}
               {userRole === 'master' && (
@@ -138,6 +157,13 @@ export function AppSidebar() {
                     <SidebarMenuButton asChild isActive={location.pathname === '/admin/logs'}>
                       <Link to="/admin/logs">
                         <FileText /> Logs
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild isActive={location.pathname === '/admin/reports'}>
+                      <Link to="/admin/reports">
+                        <PieChart /> Relatórios
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>

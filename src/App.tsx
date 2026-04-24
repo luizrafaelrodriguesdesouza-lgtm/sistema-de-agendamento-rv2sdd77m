@@ -24,6 +24,7 @@ import AdminDashboard from './pages/admin/AdminDashboard'
 import AdminApprovals from './pages/admin/AdminApprovals'
 import AdminWebhooks from './pages/admin/AdminWebhooks'
 import AdminLogs from './pages/admin/AdminLogs'
+import Reports from './pages/Reports'
 import NotFound from './pages/NotFound'
 
 import { AuthProvider } from './hooks/use-auth'
@@ -51,12 +52,15 @@ const App = () => (
             <Route path="/dashboard/proprietario" element={<OwnerDashboard />} />
             <Route path="/dashboard/proprietario/equipe" element={<OwnerTeam />} />
             <Route path="/dashboard/proprietario/servicos" element={<OwnerServices />} />
+            <Route path="/dashboard/proprietario/relatorios" element={<Reports />} />
             <Route element={<AdminRoute />}>
+              {' '}
               <Route path="/admin/dashboard" element={<AdminDashboard />} />
               <Route path="/admin/approvals" element={<AdminApprovals />} />
               <Route path="/admin/webhooks" element={<AdminWebhooks />} />
               <Route path="/admin/logs" element={<AdminLogs />} />
-            </Route>
+              <Route path="/admin/reports" element={<Reports />} />
+            </Route>{' '}
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
