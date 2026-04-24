@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import {
   Table,
   TableBody,
@@ -12,11 +13,20 @@ import {
 import pb from '@/lib/pocketbase/client'
 import { useAuth } from '@/hooks/use-auth'
 import { useRealtime } from '@/hooks/use-realtime'
+import { useToast } from '@/hooks/use-toast'
 import { format } from 'date-fns'
-import { MessageCircle } from 'lucide-react'
+import {
+  MessageCircle,
+  CheckCircle,
+  XCircle,
+  DollarSign,
+  CalendarDays,
+  CalendarRange,
+} from 'lucide-react'
 
 export default function ProfessionalDashboard() {
   const { user } = useAuth()
+  const { toast } = useToast()
   const [appointments, setAppointments] = useState<any[]>([])
   const [services, setServices] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -50,18 +60,101 @@ export default function ProfessionalDashboard() {
   useRealtime('agendamentos', () => loadData())
   useRealtime('servicos', () => loadData())
 
+  const updateStatus = async (id: string, newStatus: string) => {
+    try {
+      await pb.collection('agendamentos').update(id, { status: newStatus })
+      toast({ title: 'Sucesso', description: `Agendamento atualizado para ${newStatus}.` })
+    } catch (e: any) {
+      toast({ title: 'Erro', description: e.message, variant: 'destructive' })
+    }
+  }
+
+  const now = new Date()
+  const todayStr = format(now, 'yyyy-MM-dd')
+  const monthStr = format(now, 'yyyy-MM')
+  const yearStr = format(now, 'yyyy')
+
+  let dailyRev = 0
+  let monthlyRev = 0
+  let yearlyRev = 0
+
+  appointments.forEach((a) => {
+    if (a.status === 'concluido') {
+      const aDate = new Date(a.data)
+      const aDateStr = format(aDate, 'yyyy-MM-dd')
+      const aMonthStr = format(aDate, 'yyyy-MM')
+      const aYearStr = format(aDate, 'yyyy')
+      const price = a.expand?.servico_id?.preco || 0
+
+      if (aDateStr === todayStr) dailyRev += price
+      if (aMonthStr === monthStr) monthlyRev += price
+      if (aYearStr === yearStr) yearlyRev += price
+    }
+  })
+
+  const formatCurrency = (val: number) =>
+    new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val)
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'concluido':
+        return <Badge className="bg-indigo-500 hover:bg-indigo-600">CONCLUÍDO</Badge>
+      case 'confirmado':
+        return <Badge className="bg-emerald-500 hover:bg-emerald-600">CONFIRMADO</Badge>
+      case 'cancelado':
+        return <Badge variant="destructive">CANCELADO</Badge>
+      default:
+        return <Badge variant="secondary">PENDENTE</Badge>
+    }
+  }
+
   return (
     <div className="space-y-8 animate-fade-in">
       <div>
         <h2 className="text-3xl font-bold text-slate-800">Painel do Profissional</h2>
-        <p className="text-slate-500 mt-1">Gerencie sua agenda e seu portfólio de serviços.</p>
+        <p className="text-slate-500 mt-1">
+          Gerencie sua agenda, faturamento e portfólio de serviços.
+        </p>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card className="shadow-sm border-slate-200">
+          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+            <CardTitle className="text-sm font-medium text-slate-600">Faturamento Diário</CardTitle>
+            <DollarSign className="w-4 h-4 text-slate-400" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-slate-800">{formatCurrency(dailyRev)}</div>
+            <p className="text-xs text-slate-500 mt-1">Hoje</p>
+          </CardContent>
+        </Card>
+        <Card className="shadow-sm border-slate-200">
+          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+            <CardTitle className="text-sm font-medium text-slate-600">Faturamento Mensal</CardTitle>
+            <CalendarDays className="w-4 h-4 text-slate-400" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-slate-800">{formatCurrency(monthlyRev)}</div>
+            <p className="text-xs text-slate-500 mt-1">Este mês</p>
+          </CardContent>
+        </Card>
+        <Card className="shadow-sm border-slate-200">
+          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+            <CardTitle className="text-sm font-medium text-slate-600">Faturamento Anual</CardTitle>
+            <CalendarRange className="w-4 h-4 text-slate-400" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-slate-800">{formatCurrency(yearlyRev)}</div>
+            <p className="text-xs text-slate-500 mt-1">Este ano</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+        <Card className="shadow-sm border-slate-200 xl:col-span-2">
           <CardHeader>
-            <CardTitle>Próximos Agendamentos</CardTitle>
-            <CardDescription>Pacientes confirmados e agendamentos pendentes.</CardDescription>
+            <CardTitle>Agendamentos</CardTitle>
+            <CardDescription>Gerencie os status dos seus pacientes.</CardDescription>
           </CardHeader>
           <CardContent>
             {loading ? (
@@ -78,53 +171,70 @@ export default function ProfessionalDashboard() {
                       <TableHead>Paciente</TableHead>
                       <TableHead>Serviço</TableHead>
                       <TableHead>Data / Hora</TableHead>
-                      <TableHead>Contato</TableHead>
                       <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {appointments.map((a) => {
                       const telefone = a.cliente_telefone || ''
                       const cleanPhone = telefone.replace(/\D/g, '')
-                      const whatsappLink = cleanPhone ? `https://wa.me/${cleanPhone}` : null
+                      const whatsappLink = cleanPhone ? `https://wa.me/55${cleanPhone}` : null
 
                       return (
                         <TableRow key={a.id}>
                           <TableCell className="font-medium">
                             {a.expand?.cliente_id?.name || a.cliente_nome || 'Paciente'}
-                          </TableCell>
-                          <TableCell className="text-slate-600">
-                            {a.expand?.servico_id?.nome || 'Serviço não definido'}
-                          </TableCell>
-                          <TableCell className="text-slate-600">
-                            {format(new Date(a.data), 'dd/MM/yyyy HH:mm')}
-                          </TableCell>
-                          <TableCell>
-                            {whatsappLink ? (
+                            {whatsappLink && (
                               <a
                                 href={whatsappLink}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="inline-flex items-center text-emerald-600 hover:text-emerald-700 font-medium text-sm bg-emerald-50 px-2 py-1 rounded-md transition-colors"
+                                className="flex items-center text-emerald-600 hover:text-emerald-700 font-medium text-xs mt-1 transition-colors"
                               >
-                                <MessageCircle className="w-4 h-4 mr-1.5" />
+                                <MessageCircle className="w-3 h-3 mr-1" />
                                 {telefone}
                               </a>
-                            ) : (
-                              <span className="text-slate-400 text-sm">Não informado</span>
                             )}
                           </TableCell>
-                          <TableCell>
-                            <Badge
-                              variant={a.status === 'confirmado' ? 'default' : 'secondary'}
-                              className={
-                                a.status === 'confirmado'
-                                  ? 'bg-emerald-500 hover:bg-emerald-600'
-                                  : ''
-                              }
-                            >
-                              {a.status.toUpperCase()}
-                            </Badge>
+                          <TableCell className="text-slate-600">
+                            {a.expand?.servico_id?.nome || 'Serviço não definido'}
+                            <div className="text-xs text-slate-400 mt-1">
+                              {formatCurrency(a.expand?.servico_id?.preco || 0)}
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-slate-600">
+                            {format(new Date(a.data), 'dd/MM/yyyy')}
+                            <div className="text-xs font-medium text-slate-800 mt-1">
+                              {format(new Date(a.data), 'HH:mm')}
+                            </div>
+                          </TableCell>
+                          <TableCell>{getStatusBadge(a.status)}</TableCell>
+                          <TableCell className="text-right">
+                            {a.status === 'pendente' || a.status === 'confirmado' ? (
+                              <div className="flex justify-end gap-2">
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 h-8 w-8"
+                                  onClick={() => updateStatus(a.id, 'concluido')}
+                                  title="Marcar como Concluído"
+                                >
+                                  <CheckCircle className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="text-rose-600 hover:text-rose-700 hover:bg-rose-50 h-8 w-8"
+                                  onClick={() => updateStatus(a.id, 'cancelado')}
+                                  title="Cancelar Agendamento"
+                                >
+                                  <XCircle className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            ) : (
+                              <span className="text-slate-400 text-xs font-medium">Finalizado</span>
+                            )}
                           </TableCell>
                         </TableRow>
                       )
@@ -138,12 +248,8 @@ export default function ProfessionalDashboard() {
 
         <Card className="shadow-sm border-slate-200">
           <CardHeader>
-            <div className="flex justify-between items-center">
-              <div>
-                <CardTitle>Meus Serviços</CardTitle>
-                <CardDescription>Os procedimentos que você oferece.</CardDescription>
-              </div>
-            </div>
+            <CardTitle>Meus Serviços</CardTitle>
+            <CardDescription>Os procedimentos que você oferece.</CardDescription>
           </CardHeader>
           <CardContent>
             {loading ? (
@@ -162,7 +268,7 @@ export default function ProfessionalDashboard() {
                     <div>
                       <p className="font-bold text-slate-800">{s.nome}</p>
                       <p className="text-sm font-medium text-primary mt-1">
-                        R$ {s.preco.toFixed(2)}{' '}
+                        {formatCurrency(s.preco)}
                         <span className="text-slate-400 font-normal ml-2">{s.duracao} min</span>
                       </p>
                     </div>
