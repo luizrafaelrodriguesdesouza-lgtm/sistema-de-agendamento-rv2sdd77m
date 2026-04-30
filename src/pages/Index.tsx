@@ -1,16 +1,40 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import pb from '@/lib/pocketbase/client'
+import { BookingFlow } from '@/components/booking/BookingFlow'
 
 export default function Index() {
   const [clinics, setClinics] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [searchParams, setSearchParams] = useSearchParams()
+  const salaoSlug = searchParams.get('salao')
+
+  const [clinicFromSlug, setClinicFromSlug] = useState<any>(null)
+  const [loadingSlug, setLoadingSlug] = useState(false)
 
   useEffect(() => {
+    if (salaoSlug) {
+      setLoadingSlug(true)
+      pb.collection('users')
+        .getFirstListItem(`slug = '${salaoSlug}' && tipo = 'proprietario'`)
+        .then(setClinicFromSlug)
+        .catch((err) => {
+          console.error(err)
+          setClinicFromSlug(null)
+        })
+        .finally(() => setLoadingSlug(false))
+    } else {
+      setClinicFromSlug(null)
+    }
+  }, [salaoSlug])
+
+  useEffect(() => {
+    if (salaoSlug) return
     const fetchClinics = async () => {
+      setLoading(true)
       try {
         const records = await pb.collection('users').getFullList({
           filter: "tipo = 'proprietario' && status_aprovacao = 'aprovado'",
@@ -23,7 +47,38 @@ export default function Index() {
       }
     }
     fetchClinics()
-  }, [])
+  }, [salaoSlug])
+
+  if (salaoSlug) {
+    if (loadingSlug) {
+      return (
+        <div className="flex justify-center py-20 min-h-[calc(100vh-64px)] items-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        </div>
+      )
+    }
+
+    if (!clinicFromSlug) {
+      return (
+        <div className="flex-1 py-12 px-4 md:px-8 bg-slate-50 min-h-[calc(100vh-64px)] flex flex-col items-center justify-center">
+          <h2 className="text-2xl font-bold mb-4 text-slate-800">Clínica não encontrada</h2>
+          <Button onClick={() => setSearchParams({})}>Voltar para o Início</Button>
+        </div>
+      )
+    }
+
+    return (
+      <div className="flex-1 py-12 px-4 md:px-8 bg-slate-50 min-h-[calc(100vh-64px)]">
+        <div className="max-w-4xl mx-auto mb-8 text-center animate-fade-in-down">
+          <h1 className="text-3xl font-bold text-slate-800 mb-2">
+            Agendar em {clinicFromSlug.empresa || clinicFromSlug.name}
+          </h1>
+          <p className="text-slate-500">Siga os passos abaixo para concluir seu agendamento.</p>
+        </div>
+        <BookingFlow proprietarioId={clinicFromSlug.id} onCancel={() => setSearchParams({})} />
+      </div>
+    )
+  }
 
   return (
     <div className="flex-1 py-12 px-4 md:px-8 bg-slate-50 min-h-[calc(100vh-64px)]">
@@ -50,7 +105,11 @@ export default function Index() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 text-left">
             {clinics.map((clinic) => (
-              <Link key={clinic.id} to={`/agendar/${clinic.id}`} className="block h-full">
+              <Link
+                key={clinic.id}
+                to={`/?salao=${clinic.slug || clinic.id}`}
+                className="block h-full"
+              >
                 <Card className="h-full hover:-translate-y-1 hover:shadow-elevation transition-all duration-300 border-2 border-transparent hover:border-primary/50 group bg-white">
                   <CardContent className="p-6 flex flex-col items-center text-center gap-4 h-full">
                     <Avatar className="h-24 w-24 shadow-sm bg-primary/10 border-4 border-white group-hover:border-primary/20 transition-colors">

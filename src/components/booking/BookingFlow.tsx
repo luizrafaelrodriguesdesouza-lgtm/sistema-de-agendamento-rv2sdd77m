@@ -15,21 +15,43 @@ export function BookingFlow({
   onCancel: () => void
 }) {
   const [step, setStep] = useState(1)
-  const [selectedService, setSelectedService] = useState<any | null>(null)
-  const [selectedProfService, setSelectedProfService] = useState<any | null>(null)
   const [selectedProf, setSelectedProf] = useState<any | null>(null)
+  const [selectedService, setSelectedService] = useState<any | null>(null)
   const [dateTime, setDateTime] = useState<{ date: Date; time: string } | null>(null)
 
+  const [professionals, setProfessionals] = useState<any[]>([])
   const [services, setServices] = useState<any[]>([])
-  const [profServices, setProfServices] = useState<any[]>([])
-  const [loadingServices, setLoadingServices] = useState(true)
-  const [loadingProfs, setLoadingProfs] = useState(false)
+  const [loadingProfs, setLoadingProfs] = useState(true)
+  const [loadingServices, setLoadingServices] = useState(false)
 
   useEffect(() => {
-    const fetchServices = async () => {
+    const fetchProfs = async () => {
       try {
+        const profs = await pb.collection('users').getFullList({
+          filter: `((tipo = 'profissional' && proprietario_id = '${proprietarioId}') || id = '${proprietarioId}') && status_aprovacao = 'aprovado'`,
+        })
+        setProfessionals(profs)
+      } catch (error) {
+        console.error(error)
+      } finally {
+        setLoadingProfs(false)
+      }
+    }
+    fetchProfs()
+  }, [proprietarioId])
+
+  useEffect(() => {
+    if (!selectedProf) return
+    const fetchServices = async () => {
+      setLoadingServices(true)
+      try {
+        const filterStr =
+          selectedProf.id === proprietarioId
+            ? `proprietario_id = '${proprietarioId}' && profissional_id = '' && ativo = true`
+            : `(profissional_id = '${selectedProf.id}' || (proprietario_id = '${proprietarioId}' && profissional_id = '')) && ativo = true`
+
         const servs = await pb.collection('servicos').getFullList({
-          filter: `proprietario_id = '${proprietarioId}' && profissional_id = '' && ativo = true`,
+          filter: filterStr,
         })
         setServices(servs)
       } catch (error) {
@@ -39,30 +61,7 @@ export function BookingFlow({
       }
     }
     fetchServices()
-  }, [proprietarioId])
-
-  useEffect(() => {
-    if (!selectedService) return
-    const fetchProfs = async () => {
-      setLoadingProfs(true)
-      try {
-        const safeNome = selectedService.nome.replace(/'/g, "\\'")
-        const pServs = await pb.collection('servicos').getFullList({
-          filter: `proprietario_id = '${proprietarioId}' && profissional_id != '' && nome = '${safeNome}' && ativo = true`,
-          expand: 'profissional_id',
-        })
-        const validPServs = pServs.filter(
-          (ps) => ps.expand?.profissional_id?.status_aprovacao === 'aprovado',
-        )
-        setProfServices(validPServs)
-      } catch (error) {
-        console.error(error)
-      } finally {
-        setLoadingProfs(false)
-      }
-    }
-    fetchProfs()
-  }, [selectedService, proprietarioId])
+  }, [selectedProf, proprietarioId])
 
   const handleNext = () => setStep((s) => s + 1)
   const handleBack = () => {
@@ -73,9 +72,9 @@ export function BookingFlow({
   const getStepTitle = () => {
     switch (step) {
       case 1:
-        return 'Escolha o Serviço'
-      case 2:
         return 'Escolha o Profissional'
+      case 2:
+        return 'Escolha o Serviço'
       case 3:
         return 'Selecione Data e Hora'
       case 4:
@@ -98,12 +97,37 @@ export function BookingFlow({
       </div>
 
       {step === 1 && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          {loadingProfs ? (
+            <p className="col-span-full text-center py-8 text-slate-500">
+              Carregando profissionais...
+            </p>
+          ) : professionals.length === 0 ? (
+            <div className="col-span-full text-center py-8 bg-slate-50 rounded-xl border">
+              <p className="text-slate-500">Nenhum profissional disponível.</p>
+            </div>
+          ) : (
+            professionals.map((prof) => (
+              <ProfessionalCard
+                key={prof.id}
+                prof={prof}
+                onSelect={() => {
+                  setSelectedProf(prof)
+                  handleNext()
+                }}
+              />
+            ))
+          )}
+        </div>
+      )}
+
+      {step === 2 && (
         <div className="w-full">
           {loadingServices ? (
             <p className="text-center py-8 text-slate-500">Carregando serviços...</p>
           ) : services.length === 0 ? (
             <div className="text-center py-8 bg-slate-50 rounded-xl border">
-              <p className="text-slate-500">Nenhum serviço disponível no momento.</p>
+              <p className="text-slate-500">Nenhum serviço disponível para este profissional.</p>
             </div>
           ) : (
             <ServiceList
@@ -117,36 +141,10 @@ export function BookingFlow({
         </div>
       )}
 
-      {step === 2 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-          {loadingProfs ? (
-            <p className="col-span-full text-center py-8 text-slate-500">
-              Carregando profissionais...
-            </p>
-          ) : profServices.length === 0 ? (
-            <div className="col-span-full text-center py-8 bg-slate-50 rounded-xl border">
-              <p className="text-slate-500">Nenhum profissional disponível para este serviço.</p>
-            </div>
-          ) : (
-            profServices.map((ps) => (
-              <ProfessionalCard
-                key={ps.expand?.profissional_id?.id}
-                prof={ps.expand?.profissional_id}
-                onSelect={() => {
-                  setSelectedProfService(ps)
-                  setSelectedProf(ps.expand?.profissional_id)
-                  handleNext()
-                }}
-              />
-            ))
-          )}
-        </div>
-      )}
-
       {step === 3 && (
         <DateTimePicker
           professionalId={selectedProf?.id}
-          serviceDuration={selectedProfService?.duracao || 30}
+          serviceDuration={selectedService?.duracao || 30}
           onSelect={(dt) => {
             setDateTime(dt)
             handleNext()
@@ -154,10 +152,10 @@ export function BookingFlow({
         />
       )}
 
-      {step === 4 && selectedProf && selectedProfService && dateTime && (
+      {step === 4 && selectedProf && selectedService && dateTime && (
         <UserForm
           professional={selectedProf}
-          service={selectedProfService}
+          service={selectedService}
           dateTime={dateTime}
           onSuccess={onCancel}
         />

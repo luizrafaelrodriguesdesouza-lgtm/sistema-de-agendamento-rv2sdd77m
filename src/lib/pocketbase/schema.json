@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-24T00:34:08.277Z",
+  "generatedAt": "2026-04-30T16:51:40.898Z",
   "collections": [
     {
       "name": "users",
@@ -106,12 +106,19 @@
           "type": "text",
           "required": false,
           "system": false
+        },
+        {
+          "name": "slug",
+          "type": "text",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": [
         "CREATE UNIQUE INDEX `idx_tokenKey__pb_users_auth_` ON `users` (`tokenKey`)",
         "CREATE UNIQUE INDEX `idx_email__pb_users_auth_` ON `users` (`email`) WHERE `email` != ''",
-        "CREATE UNIQUE INDEX `idx_codigo_acesso` ON `users` (codigo_acesso) WHERE codigo_acesso != ''"
+        "CREATE UNIQUE INDEX `idx_codigo_acesso` ON `users` (codigo_acesso) WHERE codigo_acesso != ''",
+        "CREATE UNIQUE INDEX `idx_users_slug` ON `users` (slug) WHERE slug != ''"
       ]
     },
     {
