@@ -5,6 +5,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import pb from '@/lib/pocketbase/client'
 import { BookingFlow } from '@/components/booking/BookingFlow'
+import { hexToHsl } from '@/lib/colors'
 
 export default function Index() {
   const [clinics, setClinics] = useState<any[]>([])
@@ -67,9 +68,27 @@ export default function Index() {
       )
     }
 
+    const customStyle = clinicFromSlug.cor_tema
+      ? ({ '--primary': hexToHsl(clinicFromSlug.cor_tema) } as React.CSSProperties)
+      : undefined
+
     return (
-      <div className="flex-1 py-12 px-4 md:px-8 bg-slate-50 min-h-[calc(100vh-64px)]">
-        <div className="max-w-4xl mx-auto mb-8 text-center animate-fade-in-down">
+      <div
+        className="flex-1 py-12 px-4 md:px-8 bg-slate-50 min-h-[calc(100vh-64px)] transition-colors duration-500"
+        style={customStyle}
+      >
+        <div className="max-w-4xl mx-auto mb-8 text-center animate-fade-in-down flex flex-col items-center">
+          {clinicFromSlug.logo ? (
+            <img
+              src={pb.files.getURL(clinicFromSlug, clinicFromSlug.logo)}
+              alt="Logo"
+              className="h-20 w-auto mb-4 rounded-xl shadow-sm object-contain bg-white p-2"
+            />
+          ) : (
+            <div className="h-20 w-20 mb-4 rounded-xl bg-primary/10 flex items-center justify-center text-primary text-3xl font-bold">
+              {(clinicFromSlug.empresa || clinicFromSlug.name)?.[0]?.toUpperCase() || 'E'}
+            </div>
+          )}
           <h1 className="text-3xl font-bold text-slate-800 mb-2">
             Agendar em {clinicFromSlug.empresa || clinicFromSlug.name}
           </h1>
@@ -112,9 +131,16 @@ export default function Index() {
               >
                 <Card className="h-full hover:-translate-y-1 hover:shadow-elevation transition-all duration-300 border-2 border-transparent hover:border-primary/50 group bg-white">
                   <CardContent className="p-6 flex flex-col items-center text-center gap-4 h-full">
-                    <Avatar className="h-24 w-24 shadow-sm bg-primary/10 border-4 border-white group-hover:border-primary/20 transition-colors">
+                    <Avatar className="h-24 w-24 shadow-sm bg-primary/10 border-4 border-white group-hover:border-primary/20 transition-colors bg-white">
                       <AvatarImage
-                        src={clinic.avatar ? pb.files.getURL(clinic, clinic.avatar) : ''}
+                        src={
+                          clinic.logo
+                            ? pb.files.getURL(clinic, clinic.logo)
+                            : clinic.avatar
+                              ? pb.files.getURL(clinic, clinic.avatar)
+                              : ''
+                        }
+                        className="object-contain p-2"
                       />
                       <AvatarFallback className="text-primary text-3xl font-bold">
                         {clinic.empresa?.[0]?.toUpperCase() ||

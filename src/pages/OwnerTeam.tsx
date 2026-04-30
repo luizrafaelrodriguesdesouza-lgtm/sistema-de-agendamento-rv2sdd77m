@@ -10,25 +10,47 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog'
 import { Textarea } from '@/components/ui/textarea'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { useToast } from '@/hooks/use-toast'
 import pb from '@/lib/pocketbase/client'
 import { useAuth } from '@/hooks/use-auth'
 import { useRealtime } from '@/hooks/use-realtime'
-import { Check, X } from 'lucide-react'
+import useMasterStore from '@/stores/useMasterStore'
+import { Check, X, Plus } from 'lucide-react'
 
 export default function OwnerTeam() {
   const { user } = useAuth()
+  const { selectedOwnerId } = useMasterStore()
   const { toast } = useToast()
   const [professionals, setProfessionals] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [rejectingId, setRejectingId] = useState<string | null>(null)
   const [rejectionReason, setRejectionReason] = useState('')
 
+  const [isAddOpen, setIsAddOpen] = useState(false)
+  const [newProf, setNewProf] = useState({
+    name: '',
+    email: '',
+    password: '',
+    bio: '',
+    especialidades: '',
+  })
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const getTargetId = () => (user?.tipo === 'master' ? selectedOwnerId : user?.id)
+
   const loadData = async () => {
-    if (!user) return
+    const targetId = getTargetId()
+    if (!targetId) {
+      setProfessionals([])
+      setLoading(false)
+      return
+    }
+
     try {
       const profs = await pb.collection('users').getFullList({
-        filter: `proprietario_id = '${user.id}' && tipo = 'profissional'`,
+        filter: `proprietario_id = '${targetId}' && tipo = 'profissional'`,
         sort: '-created',
       })
       setProfessionals(profs)
@@ -41,7 +63,7 @@ export default function OwnerTeam() {
 
   useEffect(() => {
     loadData()
-  }, [user])
+  }, [user, selectedOwnerId])
   useRealtime('users', () => loadData())
 
   const handleApprove = async (id: string) => {
@@ -68,13 +90,47 @@ export default function OwnerTeam() {
     }
   }
 
+  const handleAddProfessional = async (e: React.FormEvent) => {
+    e.preventDefault()
+    const targetId = getTargetId()
+    if (!targetId) return
+
+    setIsSubmitting(true)
+    try {
+      await pb.collection('users').create({
+        name: newProf.name,
+        email: newProf.email,
+        password: newProf.password,
+        passwordConfirm: newProf.password,
+        bio: newProf.bio,
+        especialidades: newProf.especialidades,
+        tipo: 'profissional',
+        status_aprovacao: 'aprovado',
+        proprietario_id: targetId,
+      })
+      toast({ title: 'Sucesso', description: 'Profissional adicionado.' })
+      setIsAddOpen(false)
+      setNewProf({ name: '', email: '', password: '', bio: '', especialidades: '' })
+    } catch (err: any) {
+      toast({ title: 'Erro', description: err.message, variant: 'destructive' })
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
   return (
     <div className="space-y-8 animate-fade-in-up">
-      <div>
-        <h2 className="text-3xl font-bold text-slate-800">Equipe</h2>
-        <p className="text-slate-500 mt-1">
-          Gerencie as aprovações dos profissionais da sua clínica.
-        </p>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h2 className="text-3xl font-bold text-slate-800">Equipe</h2>
+          <p className="text-slate-500 mt-1">Gerencie os profissionais da sua clínica.</p>
+        </div>
+        {getTargetId() && (
+          <Button onClick={() => setIsAddOpen(true)}>
+            <Plus className="w-4 h-4 mr-2" />
+            Adicionar Profissional
+          </Button>
+        )}
       </div>
 
       <Card className="shadow-sm border-slate-200">
@@ -163,6 +219,67 @@ export default function OwnerTeam() {
               Confirmar Rejeição
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Adicionar Novo Profissional</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleAddProfessional} className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Nome Completo *</Label>
+              <Input
+                required
+                value={newProf.name}
+                onChange={(e) => setNewProf({ ...newProf, name: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Email *</Label>
+              <Input
+                required
+                type="email"
+                value={newProf.email}
+                onChange={(e) => setNewProf({ ...newProf, email: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Senha Provisória *</Label>
+              <Input
+                required
+                type="text"
+                minLength={8}
+                value={newProf.password}
+                onChange={(e) => setNewProf({ ...newProf, password: e.target.value })}
+                placeholder="Mínimo de 8 caracteres"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Especialidades</Label>
+              <Input
+                value={newProf.especialidades}
+                onChange={(e) => setNewProf({ ...newProf, especialidades: e.target.value })}
+                placeholder="Ex: Cabelo, Barba, Unhas"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Bio / Descrição</Label>
+              <Textarea
+                value={newProf.bio}
+                onChange={(e) => setNewProf({ ...newProf, bio: e.target.value })}
+              />
+            </div>
+            <DialogFooter className="pt-4">
+              <Button type="button" variant="outline" onClick={() => setIsAddOpen(false)}>
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? 'Salvando...' : 'Adicionar'}
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     </div>

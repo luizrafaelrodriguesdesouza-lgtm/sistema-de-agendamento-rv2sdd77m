@@ -1,15 +1,17 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
 import { Bar, BarChart, XAxis, YAxis, CartesianGrid } from 'recharts'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { useAuth } from '@/hooks/use-auth'
 import pb from '@/lib/pocketbase/client'
 import { useRealtime } from '@/hooks/use-realtime'
 import useMasterStore from '@/stores/useMasterStore'
 import { useToast } from '@/hooks/use-toast'
-import { Copy } from 'lucide-react'
+import { Copy, Upload, Trash2 } from 'lucide-react'
 
 export default function OwnerDashboard() {
   const { user } = useAuth()
@@ -18,6 +20,12 @@ export default function OwnerDashboard() {
   const [professionals, setProfessionals] = useState<any[]>([])
   const [appointments, setAppointments] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [ownerData, setOwnerData] = useState<any>(null)
+
+  const [corTema, setCorTema] = useState('')
+  const [logoFile, setLogoFile] = useState<File | null>(null)
+  const [savingBranding, setSavingBranding] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const loadData = async () => {
     if (!user) return
@@ -31,6 +39,10 @@ export default function OwnerDashboard() {
     }
 
     try {
+      const owner = await pb.collection('users').getOne(targetId)
+      setOwnerData(owner)
+      setCorTema(owner.cor_tema || '#009999')
+
       const profs = await pb.collection('users').getFullList({
         filter: `proprietario_id = '${targetId}'`,
       })
@@ -81,6 +93,26 @@ export default function OwnerDashboard() {
       receita: revenue,
     }
   })
+
+  const handleSaveBranding = async () => {
+    if (!ownerData) return
+    setSavingBranding(true)
+    try {
+      const formData = new FormData()
+      formData.append('cor_tema', corTema)
+      if (logoFile) {
+        formData.append('logo', logoFile)
+      }
+      await pb.collection('users').update(ownerData.id, formData)
+      toast({ title: 'Marca atualizada com sucesso!' })
+      setLogoFile(null)
+      loadData()
+    } catch (e: any) {
+      toast({ title: 'Erro ao atualizar marca', description: e.message, variant: 'destructive' })
+    } finally {
+      setSavingBranding(false)
+    }
+  }
 
   const chartConfig = {
     receita: {
@@ -168,6 +200,106 @@ export default function OwnerDashboard() {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <Card className="shadow-sm border-slate-200 lg:col-span-2">
+              <CardHeader>
+                <CardTitle>Identidade Visual da Clínica</CardTitle>
+                <CardDescription>
+                  Personalize o tema e o logo da sua página pública de agendamentos.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-col md:flex-row gap-8">
+                  <div className="flex-1 space-y-4">
+                    <div className="space-y-2">
+                      <Label>Cor Primária do Tema</Label>
+                      <div className="flex items-center gap-3">
+                        <Input
+                          type="color"
+                          value={corTema}
+                          onChange={(e) => setCorTema(e.target.value)}
+                          className="w-16 h-10 p-1 cursor-pointer"
+                        />
+                        <Input
+                          type="text"
+                          value={corTema}
+                          onChange={(e) => setCorTema(e.target.value)}
+                          className="flex-1 font-mono uppercase"
+                          placeholder="#009999"
+                        />
+                      </div>
+                      <p className="text-xs text-slate-500">
+                        Usada em botões e destaques na sua página.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex-1 space-y-4">
+                    <Label>Logo da Clínica</Label>
+                    <div className="flex items-center gap-4">
+                      <div className="w-24 h-24 border-2 border-dashed rounded-xl flex items-center justify-center bg-slate-50 overflow-hidden relative">
+                        {logoFile || ownerData?.logo ? (
+                          <img
+                            src={
+                              logoFile
+                                ? URL.createObjectURL(logoFile)
+                                : pb.files.getURL(ownerData, ownerData.logo)
+                            }
+                            alt="Logo"
+                            className="w-full h-full object-contain p-2"
+                          />
+                        ) : (
+                          <span className="text-slate-400 text-xs text-center p-2">Sem logo</span>
+                        )}
+                      </div>
+                      <div className="space-y-2">
+                        <Input
+                          type="file"
+                          accept="image/png, image/jpeg, image/svg+xml, image/webp"
+                          className="hidden"
+                          ref={fileInputRef}
+                          onChange={(e) => {
+                            if (e.target.files && e.target.files[0]) {
+                              setLogoFile(e.target.files[0])
+                            }
+                          }}
+                        />
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => fileInputRef.current?.click()}
+                          className="w-full"
+                        >
+                          <Upload className="w-4 h-4 mr-2" /> Escolher Imagem
+                        </Button>
+                        {(logoFile || ownerData?.logo) && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="w-full text-rose-500 hover:text-rose-600"
+                            onClick={async () => {
+                              if (logoFile) setLogoFile(null)
+                              else if (ownerData?.logo) {
+                                await pb.collection('users').update(ownerData.id, { logo: null })
+                                loadData()
+                                toast({ title: 'Logo removido.' })
+                              }
+                            }}
+                          >
+                            <Trash2 className="w-4 h-4 mr-2" /> Remover
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-6 flex justify-end">
+                  <Button onClick={handleSaveBranding} disabled={savingBranding}>
+                    {savingBranding ? 'Salvando...' : 'Salvar Identidade Visual'}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
             <Card className="shadow-sm border-slate-200">
               <CardHeader>
                 <CardTitle>Receita por Profissional</CardTitle>
