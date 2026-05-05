@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '@/hooks/use-auth'
 import { Button } from '@/components/ui/button'
 import {
@@ -17,6 +17,11 @@ export function Header() {
   const navigate = useNavigate()
   const { selectedOwnerId, setSelectedOwnerId } = useMasterStore()
   const [owners, setOwners] = useState<any[]>([])
+  const [searchParams] = useSearchParams()
+  const salao = searchParams.get('salao')
+
+  const loginUrl = salao ? `/login?salao=${salao}` : '/login'
+  const registerUrl = salao ? `/cadastro?salao=${salao}` : '/cadastro'
 
   useEffect(() => {
     if (user?.tipo === 'master') {
@@ -72,10 +77,10 @@ export function Header() {
           ) : (
             <>
               <Button variant="ghost" asChild>
-                <Link to="/login">Entrar</Link>
+                <Link to={loginUrl}>Entrar</Link>
               </Button>
               <Button asChild className="rounded-full shadow-elevation">
-                <Link to="/cadastro">Cadastrar</Link>
+                <Link to={registerUrl}>Cadastrar</Link>
               </Button>
             </>
           )}

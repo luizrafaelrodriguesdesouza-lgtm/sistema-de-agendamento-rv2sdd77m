@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
@@ -36,6 +36,8 @@ export default function Register() {
 
   const navigate = useNavigate()
   const { toast } = useToast()
+  const [searchParams] = useSearchParams()
+  const salao = searchParams.get('salao')
 
   const handleValidateCode = async () => {
     if (!codigoAcesso) return
@@ -89,9 +91,17 @@ export default function Register() {
       }
 
       toast({ title: 'Cadastro realizado com sucesso!' })
-      if (role === 'cliente') navigate('/meus-agendamentos')
-      else if (role === 'profissional') navigate('/dashboard/profissional/servicos')
-      else navigate('/pendente')
+      if (role === 'cliente') {
+        if (salao) {
+          navigate(`/?salao=${salao}`)
+        } else {
+          navigate('/meus-agendamentos')
+        }
+      } else if (role === 'profissional') {
+        navigate('/dashboard/profissional/servicos')
+      } else {
+        navigate('/pendente')
+      }
     } catch (err: any) {
       toast({
         title: 'Erro ao cadastrar',

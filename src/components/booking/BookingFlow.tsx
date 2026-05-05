@@ -89,9 +89,11 @@ export function BookingFlow({
       <div className="mb-8 space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-2xl font-bold text-slate-800">{getStepTitle()}</h2>
-          <Button variant="ghost" onClick={handleBack} className="text-slate-500">
-            Voltar
-          </Button>
+          {step > 1 && (
+            <Button variant="ghost" onClick={handleBack} className="text-slate-500">
+              Voltar
+            </Button>
+          )}
         </div>
         <Progress value={(step / 4) * 100} className="h-2" />
       </div>

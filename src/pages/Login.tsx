@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate, Link, useSearchParams } from 'react-router-dom'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
@@ -15,6 +15,8 @@ export default function Login() {
   const { signIn } = useAuth()
   const navigate = useNavigate()
   const { toast } = useToast()
+  const [searchParams] = useSearchParams()
+  const salao = searchParams.get('salao')
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -51,7 +53,11 @@ export default function Login() {
     }
 
     if (user.tipo === 'cliente') {
-      navigate('/meus-agendamentos')
+      if (salao) {
+        navigate(`/?salao=${salao}`)
+      } else {
+        navigate('/meus-agendamentos')
+      }
     } else if (user.tipo === 'master') {
       navigate('/admin/dashboard')
     } else {
@@ -101,7 +107,10 @@ export default function Login() {
           </form>
           <p className="mt-6 text-center text-sm text-slate-500">
             Ainda não tem conta?{' '}
-            <Link to="/cadastro" className="text-primary font-semibold hover:underline">
+            <Link
+              to={salao ? `/cadastro?salao=${salao}` : '/cadastro'}
+              className="text-primary font-semibold hover:underline"
+            >
               Cadastre-se
             </Link>
           </p>
