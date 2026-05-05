@@ -1,4 +1,4 @@
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { BookingFlow } from '@/components/booking/BookingFlow'
 import { useEffect, useState } from 'react'
 import pb from '@/lib/pocketbase/client'
@@ -6,18 +6,43 @@ import { hexToHsl } from '@/lib/colors'
 
 export default function Booking() {
   const { proprietarioId } = useParams()
+  const [searchParams] = useSearchParams()
+  const salao = searchParams.get('salao')
   const navigate = useNavigate()
   const [clinic, setClinic] = useState<any>(null)
+  const [resolvedProprietarioId, setResolvedProprietarioId] = useState<string | null>(
+    proprietarioId || null,
+  )
 
   useEffect(() => {
-    if (!proprietarioId) return
-    pb.collection('users')
-      .getOne(proprietarioId)
-      .then(setClinic)
-      .catch(() => navigate('/'))
-  }, [proprietarioId, navigate])
+    const fetchClinic = async () => {
+      try {
+        if (proprietarioId) {
+          const record = await pb.collection('users').getOne(proprietarioId)
+          setClinic(record)
+          setResolvedProprietarioId(record.id)
+        } else if (salao) {
+          const records = await pb.collection('users').getFullList({
+            filter: `slug = '${salao}'`,
+            max: 1,
+          })
+          if (records.length > 0) {
+            setClinic(records[0])
+            setResolvedProprietarioId(records[0].id)
+          } else {
+            navigate('/')
+          }
+        } else {
+          navigate('/')
+        }
+      } catch (err) {
+        navigate('/')
+      }
+    }
+    fetchClinic()
+  }, [proprietarioId, salao, navigate])
 
-  if (!proprietarioId || !clinic) {
+  if (!resolvedProprietarioId || !clinic) {
     return (
       <div className="flex justify-center py-20 min-h-[calc(100vh-64px)] items-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
@@ -55,7 +80,7 @@ export default function Booking() {
         </h1>
         <p className="text-slate-500">Siga os passos abaixo para concluir seu agendamento.</p>
       </div>
-      <BookingFlow proprietarioId={proprietarioId} onCancel={() => navigate('/')} />
+      <BookingFlow proprietarioId={resolvedProprietarioId} onCancel={() => navigate('/')} />
     </div>
   )
 }

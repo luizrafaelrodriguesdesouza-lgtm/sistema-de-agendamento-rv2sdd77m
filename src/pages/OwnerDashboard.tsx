@@ -213,10 +213,19 @@ export default function OwnerDashboard() {
                   variant="outline"
                   className="flex-1"
                   onClick={() => {
+                    const slug = ownerData?.slug || user?.slug
+                    if (!slug) {
+                      toast({
+                        title: 'Erro',
+                        description: 'Slug não gerado para esta clínica.',
+                        variant: 'destructive',
+                      })
+                      return
+                    }
                     navigator.clipboard.writeText(
-                      `https://sistema-de-agendamento-9bc8b.goskip.app/?salao=${ownerData?.slug || user?.slug}`,
+                      `https://sistema-de-agendamento-9bc8b.goskip.app/?salao=${slug}`,
                     )
-                    toast({ title: 'Link de cliente copiado!' })
+                    toast({ title: 'Link copiado com sucesso!' })
                   }}
                 >
                   <Copy className="w-4 h-4 mr-2" /> Convite Cliente
@@ -225,10 +234,19 @@ export default function OwnerDashboard() {
                   variant="outline"
                   className="flex-1"
                   onClick={() => {
+                    const slug = ownerData?.slug || user?.slug
+                    if (!slug) {
+                      toast({
+                        title: 'Erro',
+                        description: 'Slug não gerado para esta clínica.',
+                        variant: 'destructive',
+                      })
+                      return
+                    }
                     navigator.clipboard.writeText(
-                      `https://sistema-de-agendamento-9bc8b.goskip.app/cadastro?salao=${ownerData?.slug || user?.slug}&tipo=profissional&codigo=${ownerData?.codigo_acesso || user?.codigo_acesso}`,
+                      `https://sistema-de-agendamento-9bc8b.goskip.app/register?salao=${slug}&tipo=profissional`,
                     )
-                    toast({ title: 'Link de profissional copiado!' })
+                    toast({ title: 'Link copiado com sucesso!' })
                   }}
                 >
                   <Copy className="w-4 h-4 mr-2" /> Convite Profissional

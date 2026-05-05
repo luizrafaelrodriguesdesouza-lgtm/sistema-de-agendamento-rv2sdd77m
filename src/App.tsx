@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, useSearchParams } from 'react-router-dom'
 import { Toaster } from '@/components/ui/toaster'
 import { Toaster as Sonner } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
@@ -29,6 +29,14 @@ import NotFound from './pages/NotFound'
 
 import { AuthProvider } from './hooks/use-auth'
 
+const IndexRouteWrapper = () => {
+  const [searchParams] = useSearchParams()
+  if (searchParams.get('salao')) {
+    return <Booking />
+  }
+  return <Index />
+}
+
 const App = () => (
   <AuthProvider>
     <BrowserRouter future={{ v7_startTransition: false, v7_relativeSplatPath: false }}>
@@ -37,10 +45,11 @@ const App = () => (
         <Sonner />
         <Routes>
           <Route element={<Layout />}>
-            <Route path="/" element={<Index />} />
+            <Route path="/" element={<IndexRouteWrapper />} />
             <Route path="/agendar/:proprietarioId" element={<Booking />} />
             <Route path="/login" element={<Login />} />
             <Route path="/cadastro" element={<Register />} />
+            <Route path="/register" element={<Register />} />
             <Route path="/pendente" element={<PendingApproval />} />
             <Route path="/meus-agendamentos" element={<ClientDashboard />} />
             <Route path="/consulta/:reference" element={<Tracking />} />
