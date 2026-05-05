@@ -23,6 +23,7 @@ export default function OwnerDashboard() {
   const [ownerData, setOwnerData] = useState<any>(null)
 
   const [corTema, setCorTema] = useState('')
+  const [corSecundaria, setCorSecundaria] = useState('')
   const [logoFile, setLogoFile] = useState<File | null>(null)
   const [savingBranding, setSavingBranding] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -42,6 +43,7 @@ export default function OwnerDashboard() {
       const owner = await pb.collection('users').getOne(targetId)
       setOwnerData(owner)
       setCorTema(owner.cor_tema || '#009999')
+      setCorSecundaria(owner.cor_secundaria || '#f1f5f9')
 
       const profs = await pb.collection('users').getFullList({
         filter: `proprietario_id = '${targetId}'`,
@@ -100,6 +102,7 @@ export default function OwnerDashboard() {
     try {
       const formData = new FormData()
       formData.append('cor_tema', corTema)
+      formData.append('cor_secundaria', corSecundaria)
       if (logoFile) {
         formData.append('logo', logoFile)
       }
@@ -202,6 +205,39 @@ export default function OwnerDashboard() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <Card className="shadow-sm border-slate-200 lg:col-span-2">
               <CardHeader>
+                <CardTitle>Compartilhamento</CardTitle>
+                <CardDescription>Compartilhe os links de acesso da sua clínica.</CardDescription>
+              </CardHeader>
+              <CardContent className="flex flex-col sm:flex-row gap-4">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => {
+                    navigator.clipboard.writeText(
+                      `https://sistema-de-agendamento-9bc8b.goskip.app/?salao=${ownerData?.slug || user?.slug}`,
+                    )
+                    toast({ title: 'Link de cliente copiado!' })
+                  }}
+                >
+                  <Copy className="w-4 h-4 mr-2" /> Convite Cliente
+                </Button>
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => {
+                    navigator.clipboard.writeText(
+                      `https://sistema-de-agendamento-9bc8b.goskip.app/cadastro?salao=${ownerData?.slug || user?.slug}&tipo=profissional&codigo=${ownerData?.codigo_acesso || user?.codigo_acesso}`,
+                    )
+                    toast({ title: 'Link de profissional copiado!' })
+                  }}
+                >
+                  <Copy className="w-4 h-4 mr-2" /> Convite Profissional
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card className="shadow-sm border-slate-200 lg:col-span-2">
+              <CardHeader>
                 <CardTitle>Identidade Visual da Clínica</CardTitle>
                 <CardDescription>
                   Personalize o tema e o logo da sua página pública de agendamentos.
@@ -211,7 +247,7 @@ export default function OwnerDashboard() {
                 <div className="flex flex-col md:flex-row gap-8">
                   <div className="flex-1 space-y-4">
                     <div className="space-y-2">
-                      <Label>Cor Primária do Tema</Label>
+                      <Label>Cor Primária</Label>
                       <div className="flex items-center gap-3">
                         <Input
                           type="color"
@@ -229,6 +265,27 @@ export default function OwnerDashboard() {
                       </div>
                       <p className="text-xs text-slate-500">
                         Usada em botões e destaques na sua página.
+                      </p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Cor Secundária</Label>
+                      <div className="flex items-center gap-3">
+                        <Input
+                          type="color"
+                          value={corSecundaria}
+                          onChange={(e) => setCorSecundaria(e.target.value)}
+                          className="w-16 h-10 p-1 cursor-pointer"
+                        />
+                        <Input
+                          type="text"
+                          value={corSecundaria}
+                          onChange={(e) => setCorSecundaria(e.target.value)}
+                          className="flex-1 font-mono uppercase"
+                          placeholder="#f1f5f9"
+                        />
+                      </div>
+                      <p className="text-xs text-slate-500">
+                        Usada em fundos e elementos secundários.
                       </p>
                     </div>
                   </div>

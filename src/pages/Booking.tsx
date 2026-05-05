@@ -25,9 +25,13 @@ export default function Booking() {
     )
   }
 
-  const customStyle = clinic.cor_tema
-    ? ({ '--primary': hexToHsl(clinic.cor_tema) } as React.CSSProperties)
-    : undefined
+  const customStyle =
+    clinic.cor_tema || clinic.cor_secundaria
+      ? ({
+          ...(clinic.cor_tema ? { '--primary': hexToHsl(clinic.cor_tema) } : {}),
+          ...(clinic.cor_secundaria ? { '--secondary': hexToHsl(clinic.cor_secundaria) } : {}),
+        } as React.CSSProperties)
+      : undefined
 
   return (
     <div

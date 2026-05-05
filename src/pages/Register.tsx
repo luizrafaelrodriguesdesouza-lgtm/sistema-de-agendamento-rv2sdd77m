@@ -38,6 +38,8 @@ export default function Register() {
   const { toast } = useToast()
   const [searchParams] = useSearchParams()
   const salao = searchParams.get('salao')
+  const tipoParam = searchParams.get('tipo')
+  const codigoParam = searchParams.get('codigo')
 
   const handleValidateCode = async () => {
     if (!codigoAcesso) return
@@ -57,6 +59,22 @@ export default function Register() {
       setValidatingCode(false)
     }
   }
+
+  useEffect(() => {
+    if (tipoParam === 'profissional' || tipoParam === 'cliente' || tipoParam === 'proprietario') {
+      setRole(tipoParam)
+    }
+    if (codigoParam) {
+      setCodigoAcesso(codigoParam)
+    }
+  }, [tipoParam, codigoParam])
+
+  useEffect(() => {
+    if (codigoAcesso && codigoParam === codigoAcesso && !ownerInfo && !validatingCode) {
+      handleValidateCode()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [codigoAcesso, codigoParam])
 
   const handleFinish = async (e: React.FormEvent) => {
     e.preventDefault()
