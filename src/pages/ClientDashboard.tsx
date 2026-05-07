@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog'
+import { Sparkles } from 'lucide-react'
 import { useAuth } from '@/hooks/use-auth'
 import pb from '@/lib/pocketbase/client'
 import { useRealtime } from '@/hooks/use-realtime'
@@ -143,12 +144,28 @@ export default function ClientDashboard() {
 
       <HistorySection appointments={appointments} professionals={professionals} loading={loading} />
 
-      <AvailableServicesSection
-        services={services}
-        professionals={professionals}
-        loading={loading}
-        onBook={handleBook}
-      />
+      {clientProfile && !clientProfile.proprietario_id ? (
+        <section className="space-y-6">
+          <div className="flex items-center gap-2 border-b pb-2">
+            <Sparkles className="w-6 h-6 text-amber-500" />
+            <h2 className="text-2xl font-semibold text-slate-800">
+              Serviços Disponíveis para Agendar
+            </h2>
+          </div>
+          <div className="text-center py-12 bg-slate-50 rounded-xl border border-dashed border-slate-300">
+            <p className="text-slate-600 font-medium">
+              Você não está vinculado a nenhum salão. Contate o administrador.
+            </p>
+          </div>
+        </section>
+      ) : (
+        <AvailableServicesSection
+          services={services}
+          professionals={professionals}
+          loading={loading}
+          onBook={handleBook}
+        />
+      )}
 
       <Dialog
         open={isBookingOpen}
