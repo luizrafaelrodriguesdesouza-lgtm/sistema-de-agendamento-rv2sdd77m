@@ -13,7 +13,7 @@ migrate(
       fields: [
         { name: 'nome', type: 'text', required: true },
         { name: 'limite_profissionais', type: 'number', required: true },
-        { name: 'preco_mensal', type: 'number', required: true },
+        { name: 'preco_mensal', type: 'number' },
         { name: 'descricao', type: 'text' },
         { name: 'ativo', type: 'bool' },
         { name: 'created', type: 'autodate', onCreate: true, onUpdate: false },
