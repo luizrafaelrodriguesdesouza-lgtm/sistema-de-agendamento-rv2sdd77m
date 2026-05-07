@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-07T14:22:24.499Z",
+  "generatedAt": "2026-05-07T14:28:47.865Z",
   "collections": [
     {
       "name": "users",
@@ -169,6 +169,12 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "webhook_secret",
+          "type": "text",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": []
@@ -432,6 +438,12 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "webhook_failed",
+          "type": "bool",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": []

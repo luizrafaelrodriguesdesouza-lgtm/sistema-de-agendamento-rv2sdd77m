@@ -19,6 +19,7 @@ routerAdd(
     }
 
     const webhookUrl = records[0].getString('webhook_url')
+    const webhookSecret = records[0].getString('webhook_secret')
     if (!webhookUrl) {
       return e.badRequestError('URL do webhook não configurada.')
     }
@@ -29,7 +30,10 @@ routerAdd(
       const res = $http.send({
         url: webhookUrl,
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(webhookSecret ? { Authorization: webhookSecret } : {}),
+        },
         body: JSON.stringify(payload),
         timeout: 10,
       })

@@ -10,6 +10,7 @@ import { format } from 'date-fns'
 
 export default function AdminWebhooks() {
   const [url, setUrl] = useState('')
+  const [secret, setSecret] = useState('')
   const [settingsId, setSettingsId] = useState<string | null>(null)
   const [logs, setLogs] = useState<any[]>([])
   const [saving, setSaving] = useState(false)
@@ -21,6 +22,7 @@ export default function AdminWebhooks() {
       if (records.length > 0) {
         setSettingsId(records[0].id)
         setUrl(records[0].webhook_url || '')
+        setSecret(records[0].webhook_secret || '')
       }
     } catch (e) {
       console.error(e)
@@ -60,12 +62,16 @@ export default function AdminWebhooks() {
     try {
       setSaving(true)
       if (settingsId) {
-        await pb.collection('settings').update(settingsId, { webhook_url: url })
+        await pb
+          .collection('settings')
+          .update(settingsId, { webhook_url: url, webhook_secret: secret })
       } else {
-        const record = await pb.collection('settings').create({ webhook_url: url })
+        const record = await pb
+          .collection('settings')
+          .create({ webhook_url: url, webhook_secret: secret })
         setSettingsId(record.id)
       }
-      toast({ title: 'Sucesso', description: 'URL de webhook atualizada.' })
+      toast({ title: 'Sucesso', description: 'Configurações de webhook atualizadas.' })
     } catch (e) {
       toast({ title: 'Erro', description: 'Falha ao salvar URL.', variant: 'destructive' })
     } finally {
@@ -103,28 +109,43 @@ export default function AdminWebhooks() {
 
       <Card className="shadow-sm border-slate-200">
         <CardHeader>
-          <CardTitle>Endpoint de Destino</CardTitle>
-          <CardDescription>Defina a URL HTTPS que receberá os eventos do sistema.</CardDescription>
+          <CardTitle>Configuração do Endpoint</CardTitle>
+          <CardDescription>Defina a URL HTTPS e o segredo de autenticação.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="space-y-3">
-            <label className="text-sm font-semibold text-slate-700">URL do Webhook</label>
-            <div className="flex flex-col sm:flex-row gap-3">
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-slate-700">URL do Webhook</label>
               <Input
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
                 placeholder="https://api.suaempresa.com/webhook"
-                className="font-mono text-sm flex-1"
+                className="font-mono text-sm"
                 type="url"
               />
-              <div className="flex gap-2">
-                <Button variant="outline" onClick={handleTest}>
-                  Testar
-                </Button>
-                <Button onClick={handleSave} disabled={saving}>
-                  Salvar
-                </Button>
-              </div>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-slate-700">
+                Chave Secreta (Authorization Header)
+              </label>
+              <Input
+                value={secret}
+                onChange={(e) => setSecret(e.target.value)}
+                placeholder="Bearer token..."
+                className="font-mono text-sm"
+                type="password"
+              />
+              <p className="text-xs text-slate-500">
+                A chave será enviada no header Authorization.
+              </p>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-2 pt-2 sm:justify-end">
+              <Button variant="outline" onClick={handleTest} className="w-full sm:w-auto">
+                Testar Conexão
+              </Button>
+              <Button onClick={handleSave} disabled={saving} className="w-full sm:w-auto">
+                Salvar Configurações
+              </Button>
             </div>
           </div>
         </CardContent>

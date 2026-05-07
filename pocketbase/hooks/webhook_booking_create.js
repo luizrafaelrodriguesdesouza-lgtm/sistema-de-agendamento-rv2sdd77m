@@ -1,0 +1,77 @@
+onRecordAfterCreateSuccess((e) => {
+  const agendamento = e.record
+  if (agendamento.getString('status') !== 'confirmado') {
+    return e.next()
+  }
+
+  let records = []
+  try {
+    records = $app.findRecordsByFilter('settings', '', '-created', 1, 0)
+  } catch (_) {
+    return e.next()
+  }
+
+  if (records.length === 0) return e.next()
+
+  const webhookUrl = records[0].getString('webhook_url')
+  const webhookSecret = records[0].getString('webhook_secret')
+  if (!webhookUrl) return e.next()
+
+  const payload = {
+    event: 'booking.confirmed',
+    booking_id: agendamento.id,
+    cliente_dados: {
+      nome: agendamento.getString('cliente_nome'),
+      email: agendamento.getString('cliente_email'),
+      telefone: agendamento.getString('cliente_telefone'),
+    },
+    servico: agendamento.getString('servico_id'),
+    data_hora_utc: agendamento.getString('data'),
+    professional: agendamento.getString('profissional_id'),
+  }
+
+  let attempts = 0
+  let success = false
+  let lastStatus = 0
+  let lastResponse = ''
+
+  while (attempts < 3 && !success) {
+    attempts++
+    try {
+      const res = $http.send({
+        url: webhookUrl,
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(webhookSecret ? { Authorization: webhookSecret } : {}),
+        },
+        body: JSON.stringify(payload),
+        timeout: 5,
+      })
+      lastStatus = res.statusCode
+      lastResponse = JSON.stringify(res.json || { raw: 'OK' })
+      if (res.statusCode >= 200 && res.statusCode < 300) {
+        success = true
+      }
+    } catch (err) {
+      lastStatus = 0
+      lastResponse = err.message || 'Falha na requisição'
+    }
+  }
+
+  const logsCol = $app.findCollectionByNameOrId('webhook_logs')
+  const log = new Record(logsCol)
+  log.set('event', 'booking.confirmed')
+  log.set('status', lastStatus)
+  log.set('payload', payload)
+  log.set('response', lastResponse)
+  $app.save(log)
+
+  if (!success) {
+    const agToUpdate = $app.findRecordById('agendamentos', agendamento.id)
+    agToUpdate.set('webhook_failed', true)
+    $app.saveNoValidate(agToUpdate)
+  }
+
+  return e.next()
+}, 'agendamentos')
