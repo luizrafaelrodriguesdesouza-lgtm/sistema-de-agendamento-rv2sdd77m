@@ -225,6 +225,13 @@ export function BookingFlow({
           initialData={infosCliente}
           onSuccess={() => {
             sessionStorage.removeItem(STORAGE_KEY)
+            import('@/hooks/use-toast').then(({ toast }) => {
+              toast({
+                title: 'Agendamento Confirmado!',
+                description:
+                  'Seu horário foi reservado. Você receberá uma confirmação no WhatsApp em breve.',
+              })
+            })
             onCancel()
           }}
           onChange={(data) => setInfosCliente(data)}

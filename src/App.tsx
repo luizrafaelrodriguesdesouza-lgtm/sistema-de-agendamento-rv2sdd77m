@@ -56,6 +56,7 @@ const App = () => (
             <Route path="/consulta/:reference" element={<Tracking />} />
           </Route>
           <Route element={<DashboardLayout />}>
+            <Route path="/dashboard" element={<Reports />} />
             <Route path="/dashboard/profissional" element={<ProfessionalDashboard />} />
             <Route path="/dashboard/profissional/servicos" element={<ProfessionalServices />} />
             <Route path="/dashboard/profissional/agenda" element={<ProfessionalSchedule />} />

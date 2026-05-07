@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-07T14:12:48.830Z",
+  "generatedAt": "2026-05-07T14:22:24.499Z",
   "collections": [
     {
       "name": "users",
@@ -435,6 +435,70 @@
         }
       ],
       "indexes": []
+    },
+    {
+      "name": "reminders",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.tipo = 'master' || @request.auth.tipo = 'proprietario'",
+        "view": "@request.auth.tipo = 'master' || @request.auth.tipo = 'proprietario'",
+        "create": null,
+        "update": null,
+        "delete": null
+      },
+      "fields": [
+        {
+          "name": "agendamento_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "agendamentos"
+        },
+        {
+          "name": "tipo",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["confirmacao", "24h", "1h"]
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["pendente", "enviado", "falha"]
+        },
+        {
+          "name": "tentativas",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "data_agendamento",
+          "type": "date",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_reminders_status ON reminders (status)",
+        "CREATE INDEX idx_reminders_data ON reminders (data_agendamento)"
+      ]
     }
   ]
 }
