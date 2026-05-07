@@ -1,33 +1,64 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { Label } from '@/components/ui/label'
 import { useToast } from '@/hooks/use-toast'
 import { format } from 'date-fns'
 import pb from '@/lib/pocketbase/client'
 import { useAuth } from '@/hooks/use-auth'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import * as z from 'zod'
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form'
+
+const formSchema = z.object({
+  cliente_nome: z.string().min(2, 'Nome é obrigatório'),
+  cliente_email: z.string().email('E-mail inválido'),
+  cliente_telefone: z.string().min(10, 'Telefone inválido (mínimo 10 dígitos)'),
+})
 
 export function UserForm({
   professional,
   service,
   dateTime,
+  initialData,
   onSuccess,
+  onChange,
 }: {
   professional: any
   service: any
-  dateTime: { date: Date; time: string }
+  dateTime: { date: string; time: string }
+  initialData?: { cliente_nome: string; cliente_email: string; cliente_telefone: string } | null
   onSuccess: () => void
+  onChange?: (data: any) => void
 }) {
   const { user } = useAuth()
   const { toast } = useToast()
-
-  const [name, setName] = useState(user?.name || '')
-  const [email, setEmail] = useState(user?.email || '')
-  const [phone, setPhone] = useState('')
   const [loading, setLoading] = useState(false)
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      cliente_nome: initialData?.cliente_nome || user?.name || '',
+      cliente_email: initialData?.cliente_email || user?.email || '',
+      cliente_telefone: initialData?.cliente_telefone || '',
+    },
+  })
+
+  useEffect(() => {
+    const subscription = form.watch((value) => {
+      onChange?.(value)
+    })
+    return () => subscription.unsubscribe()
+  }, [form, onChange])
+
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setLoading(true)
 
     try {
@@ -40,12 +71,10 @@ export function UserForm({
       const payload: any = {
         profissional_id: professional.id,
         servico_id: service.id,
-        data: dt.toISOString(),
+        data: dt.toISOString(), // Converts to UTC string for PB
         status: 'pendente',
         referencia: ref,
-        cliente_nome: name,
-        cliente_email: email,
-        cliente_telefone: phone,
+        ...values,
       }
 
       if (user && user.tipo === 'cliente') {
@@ -60,14 +89,15 @@ export function UserForm({
       })
       onSuccess()
     } catch (err: any) {
-      toast({ title: 'Erro ao agendar', description: err.message, variant: 'destructive' })
+      const msg = err.response?.message || err.message || 'Erro ao agendar'
+      toast({ title: 'Erro ao agendar', description: msg, variant: 'destructive' })
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6 animate-fade-in-up">
+    <div className="animate-fade-in-up space-y-6">
       <div className="bg-slate-50 p-6 rounded-xl border mb-6 space-y-2">
         <h3 className="font-bold text-slate-800">Resumo do Agendamento</h3>
         <p className="text-sm text-slate-600">
@@ -77,44 +107,61 @@ export function UserForm({
           <span className="font-semibold">Profissional:</span> {professional.name}
         </p>
         <p className="text-sm text-slate-600">
-          <span className="font-semibold">Data/Hora:</span> {format(dateTime.date, 'dd/MM/yyyy')} às{' '}
-          {dateTime.time}
+          <span className="font-semibold">Data/Hora:</span>{' '}
+          {format(new Date(dateTime.date), 'dd/MM/yyyy')} às {dateTime.time}
         </p>
         <p className="text-sm text-slate-600">
           <span className="font-semibold">Valor:</span> R$ {service.preco.toFixed(2)}
         </p>
       </div>
 
-      <div className="space-y-4">
-        <div className="space-y-2">
-          <Label>Seu Nome Completo</Label>
-          <Input required value={name} onChange={(e) => setName(e.target.value)} className="h-12" />
-        </div>
-        <div className="space-y-2">
-          <Label>E-mail</Label>
-          <Input
-            type="email"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="h-12"
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <FormField
+            control={form.control}
+            name="cliente_nome"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Seu Nome Completo</FormLabel>
+                <FormControl>
+                  <Input placeholder="João da Silva" className="h-12" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
           />
-        </div>
-        <div className="space-y-2">
-          <Label>Telefone (WhatsApp)</Label>
-          <Input
-            required
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            placeholder="(00) 00000-0000"
-            className="h-12"
+          <FormField
+            control={form.control}
+            name="cliente_email"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>E-mail</FormLabel>
+                <FormControl>
+                  <Input type="email" placeholder="joao@exemplo.com" className="h-12" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
           />
-        </div>
-      </div>
+          <FormField
+            control={form.control}
+            name="cliente_telefone"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Telefone (WhatsApp)</FormLabel>
+                <FormControl>
+                  <Input placeholder="(11) 99999-9999" className="h-12" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-      <Button type="submit" className="w-full h-14 text-lg mt-4" disabled={loading}>
-        {loading ? 'Confirmando...' : 'Confirmar Agendamento'}
-      </Button>
-    </form>
+          <Button type="submit" className="w-full h-14 text-lg mt-4" disabled={loading}>
+            {loading ? 'Confirmando...' : 'Confirmar Agendamento'}
+          </Button>
+        </form>
+      </Form>
+    </div>
   )
 }

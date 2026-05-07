@@ -222,10 +222,9 @@ export default function OwnerDashboard() {
                       })
                       return
                     }
-                    navigator.clipboard.writeText(
-                      `https://sistema-de-agendamento-9bc8b.goskip.app/?salao=${slug}`,
-                    )
-                    toast({ title: 'Link copiado com sucesso!' })
+                    const baseUrl = window.location.origin
+                    navigator.clipboard.writeText(`${baseUrl}/${slug}`)
+                    toast({ title: 'Link copiado!' })
                   }}
                 >
                   <Copy className="w-4 h-4 mr-2" /> Convite Cliente
@@ -243,10 +242,11 @@ export default function OwnerDashboard() {
                       })
                       return
                     }
+                    const baseUrl = window.location.origin
                     navigator.clipboard.writeText(
-                      `https://sistema-de-agendamento-9bc8b.goskip.app/register?salao=${slug}&tipo=profissional`,
+                      `${baseUrl}/register?tipo=profissional&salao=${slug}`,
                     )
-                    toast({ title: 'Link copiado com sucesso!' })
+                    toast({ title: 'Link copiado!' })
                   }}
                 >
                   <Copy className="w-4 h-4 mr-2" /> Convite Profissional

@@ -5,9 +5,9 @@ import pb from '@/lib/pocketbase/client'
 import { hexToHsl } from '@/lib/colors'
 
 export default function Booking() {
-  const { proprietarioId } = useParams()
+  const { proprietarioId, slug } = useParams()
   const [searchParams] = useSearchParams()
-  const salao = searchParams.get('salao')
+  const salao = searchParams.get('salao') || slug
   const navigate = useNavigate()
   const [clinic, setClinic] = useState<any>(null)
   const [resolvedProprietarioId, setResolvedProprietarioId] = useState<string | null>(

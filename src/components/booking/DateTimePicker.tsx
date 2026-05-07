@@ -8,17 +8,22 @@ import { useRealtime } from '@/hooks/use-realtime'
 export function DateTimePicker({
   professionalId,
   serviceDuration,
+  initialDate,
   onSelect,
 }: {
   professionalId: string
   serviceDuration: number
-  onSelect: (dt: { date: Date; time: string }) => void
+  initialDate?: { date: string; time: string } | null
+  onSelect: (dt: { date: string; time: string }) => void
 }) {
-  const [date, setDate] = useState<Date | undefined>(new Date())
-  const [time, setTime] = useState<string | null>(null)
+  const [date, setDate] = useState<Date | undefined>(
+    initialDate ? new Date(initialDate.date) : new Date(),
+  )
+  const [time, setTime] = useState<string | null>(initialDate ? initialDate.time : null)
 
   const [availableTimes, setAvailableTimes] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
+  const browserTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone
 
   const fetchTimes = useCallback(async () => {
     if (!date || !professionalId) return
@@ -83,7 +88,9 @@ export function DateTimePicker({
       }
 
       setAvailableTimes([...new Set(times)].sort())
-      setTime(null)
+      if (time && !times.includes(time)) {
+        setTime(null)
+      }
     } catch (err) {
       console.error(err)
     } finally {
@@ -102,7 +109,9 @@ export function DateTimePicker({
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 animate-fade-in-up">
       <div>
-        <h3 className="font-medium text-slate-700 mb-4">1. Escolha o dia</h3>
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="font-medium text-slate-700">1. Escolha o dia</h3>
+        </div>
         <div className="border rounded-xl p-2 inline-block bg-white shadow-sm w-full sm:w-auto">
           <Calendar
             mode="single"
@@ -117,7 +126,12 @@ export function DateTimePicker({
         </div>
       </div>
       <div>
-        <h3 className="font-medium text-slate-700 mb-4">2. Escolha o horário</h3>
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="font-medium text-slate-700">2. Escolha o horário</h3>
+          <span className="text-xs text-slate-400 font-mono bg-slate-100 px-2 py-1 rounded">
+            {browserTimezone}
+          </span>
+        </div>
         {loading ? (
           <p className="text-slate-500 text-sm">Carregando horários...</p>
         ) : !date ? (
@@ -146,7 +160,7 @@ export function DateTimePicker({
             className="w-full h-12"
             disabled={!date || !time}
             onClick={() => {
-              if (date && time) onSelect({ date, time })
+              if (date && time) onSelect({ date: date.toISOString(), time })
             }}
           >
             Continuar

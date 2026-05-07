@@ -46,6 +46,7 @@ const App = () => (
         <Routes>
           <Route element={<Layout />}>
             <Route path="/" element={<IndexRouteWrapper />} />
+            <Route path="/:slug" element={<Booking />} />
             <Route path="/agendar/:proprietarioId" element={<Booking />} />
             <Route path="/login" element={<Login />} />
             <Route path="/cadastro" element={<Register />} />

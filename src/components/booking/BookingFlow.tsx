@@ -6,6 +6,9 @@ import { DateTimePicker } from './DateTimePicker'
 import { UserForm } from './UserForm'
 import { Progress } from '@/components/ui/progress'
 import pb from '@/lib/pocketbase/client'
+import { RotateCcw } from 'lucide-react'
+
+const STORAGE_KEY = 'booking_state'
 
 export function BookingFlow({
   proprietarioId,
@@ -15,43 +18,43 @@ export function BookingFlow({
   onCancel: () => void
 }) {
   const [step, setStep] = useState(1)
-  const [selectedProf, setSelectedProf] = useState<any | null>(null)
   const [selectedService, setSelectedService] = useState<any | null>(null)
-  const [dateTime, setDateTime] = useState<{ date: Date; time: string } | null>(null)
+  const [selectedProf, setSelectedProf] = useState<any | null>(null)
+  const [dateTime, setDateTime] = useState<{ date: string; time: string } | null>(null)
+  const [infosCliente, setInfosCliente] = useState<{
+    cliente_nome: string
+    cliente_email: string
+    cliente_telefone: string
+  } | null>(null)
 
-  const [professionals, setProfessionals] = useState<any[]>([])
   const [services, setServices] = useState<any[]>([])
-  const [loadingProfs, setLoadingProfs] = useState(true)
-  const [loadingServices, setLoadingServices] = useState(false)
+  const [professionals, setProfessionals] = useState<any[]>([])
+  const [loadingServices, setLoadingServices] = useState(true)
+  const [loadingProfs, setLoadingProfs] = useState(false)
 
+  // Hydration & Initialization
   useEffect(() => {
-    const fetchProfs = async () => {
+    const saved = sessionStorage.getItem(STORAGE_KEY)
+    if (saved) {
       try {
-        const profs = await pb.collection('users').getFullList({
-          filter: `((tipo = 'profissional' && proprietario_id = '${proprietarioId}') || id = '${proprietarioId}') && status_aprovacao = 'aprovado'`,
-        })
-        setProfessionals(profs)
-      } catch (error) {
-        console.error(error)
-      } finally {
-        setLoadingProfs(false)
+        const parsed = JSON.parse(saved)
+        if (parsed.proprietarioId === proprietarioId) {
+          if (parsed.servicoSelecionado) setSelectedService(parsed.servicoSelecionado)
+          if (parsed.profissionalSelecionado) setSelectedProf(parsed.profissionalSelecionado)
+          if (parsed.dataSelecionada) setDateTime(parsed.dataSelecionada)
+          if (parsed.infosCliente) setInfosCliente(parsed.infosCliente)
+          if (parsed.step) setStep(parsed.step)
+        }
+      } catch {
+        /* intentionally ignored */
       }
     }
-    fetchProfs()
-  }, [proprietarioId])
 
-  useEffect(() => {
-    if (!selectedProf) return
     const fetchServices = async () => {
       setLoadingServices(true)
       try {
-        const filterStr =
-          selectedProf.id === proprietarioId
-            ? `proprietario_id = '${proprietarioId}' && profissional_id = '' && ativo = true`
-            : `(profissional_id = '${selectedProf.id}' || (proprietario_id = '${proprietarioId}' && profissional_id = '')) && ativo = true`
-
         const servs = await pb.collection('servicos').getFullList({
-          filter: filterStr,
+          filter: `proprietario_id = '${proprietarioId}' && ativo = true`,
         })
         setServices(servs)
       } catch (error) {
@@ -61,7 +64,53 @@ export function BookingFlow({
       }
     }
     fetchServices()
-  }, [selectedProf, proprietarioId])
+  }, [proprietarioId])
+
+  // Fetch Professionals when Step 2
+  useEffect(() => {
+    if (step === 2 && selectedService) {
+      const fetchProfs = async () => {
+        setLoadingProfs(true)
+        try {
+          let filterStr = `((tipo = 'profissional' && proprietario_id = '${proprietarioId}') || id = '${proprietarioId}') && status_aprovacao = 'aprovado'`
+          if (selectedService.profissional_id) {
+            filterStr = `id = '${selectedService.profissional_id}'`
+          }
+          const profs = await pb.collection('users').getFullList({ filter: filterStr })
+          setProfessionals(profs)
+        } catch (error) {
+          console.error(error)
+        } finally {
+          setLoadingProfs(false)
+        }
+      }
+      fetchProfs()
+    }
+  }, [step, selectedService, proprietarioId])
+
+  // Save state
+  useEffect(() => {
+    sessionStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        proprietarioId,
+        step,
+        servicoSelecionado: selectedService,
+        profissionalSelecionado: selectedProf,
+        dataSelecionada: dateTime,
+        infosCliente,
+      }),
+    )
+  }, [step, selectedService, selectedProf, dateTime, infosCliente, proprietarioId])
+
+  const handleReset = () => {
+    sessionStorage.removeItem(STORAGE_KEY)
+    setSelectedService(null)
+    setSelectedProf(null)
+    setDateTime(null)
+    setInfosCliente(null)
+    setStep(1)
+  }
 
   const handleNext = () => setStep((s) => s + 1)
   const handleBack = () => {
@@ -72,9 +121,9 @@ export function BookingFlow({
   const getStepTitle = () => {
     switch (step) {
       case 1:
-        return 'Escolha o Profissional'
-      case 2:
         return 'Escolha o Serviço'
+      case 2:
+        return 'Escolha o Profissional'
       case 3:
         return 'Selecione Data e Hora'
       case 4:
@@ -89,16 +138,49 @@ export function BookingFlow({
       <div className="mb-8 space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-2xl font-bold text-slate-800">{getStepTitle()}</h2>
-          {step > 1 && (
-            <Button variant="ghost" onClick={handleBack} className="text-slate-500">
-              Voltar
+          <div className="flex gap-2">
+            <Button
+              variant="ghost"
+              onClick={handleReset}
+              className="text-slate-500"
+              title="Reiniciar"
+            >
+              <RotateCcw className="w-4 h-4" />
             </Button>
-          )}
+            {step > 1 && (
+              <Button variant="ghost" onClick={handleBack} className="text-slate-500">
+                Voltar
+              </Button>
+            )}
+          </div>
         </div>
         <Progress value={(step / 4) * 100} className="h-2" />
       </div>
 
       {step === 1 && (
+        <div className="w-full">
+          {loadingServices ? (
+            <p className="text-center py-8 text-slate-500">Carregando serviços...</p>
+          ) : services.length === 0 ? (
+            <div className="text-center py-8 bg-slate-50 rounded-xl border">
+              <p className="text-slate-500">Nenhum serviço disponível.</p>
+            </div>
+          ) : (
+            <ServiceList
+              services={services}
+              onSelect={(s) => {
+                setSelectedService(s)
+                if (selectedProf && s.profissional_id && s.profissional_id !== selectedProf.id) {
+                  setSelectedProf(null)
+                }
+                handleNext()
+              }}
+            />
+          )}
+        </div>
+      )}
+
+      {step === 2 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           {loadingProfs ? (
             <p className="col-span-full text-center py-8 text-slate-500">
@@ -106,7 +188,7 @@ export function BookingFlow({
             </p>
           ) : professionals.length === 0 ? (
             <div className="col-span-full text-center py-8 bg-slate-50 rounded-xl border">
-              <p className="text-slate-500">Nenhum profissional disponível.</p>
+              <p className="text-slate-500">Nenhum profissional disponível para este serviço.</p>
             </div>
           ) : (
             professionals.map((prof) => (
@@ -123,30 +205,11 @@ export function BookingFlow({
         </div>
       )}
 
-      {step === 2 && (
-        <div className="w-full">
-          {loadingServices ? (
-            <p className="text-center py-8 text-slate-500">Carregando serviços...</p>
-          ) : services.length === 0 ? (
-            <div className="text-center py-8 bg-slate-50 rounded-xl border">
-              <p className="text-slate-500">Nenhum serviço disponível para este profissional.</p>
-            </div>
-          ) : (
-            <ServiceList
-              services={services}
-              onSelect={(s) => {
-                setSelectedService(s)
-                handleNext()
-              }}
-            />
-          )}
-        </div>
-      )}
-
       {step === 3 && (
         <DateTimePicker
           professionalId={selectedProf?.id}
           serviceDuration={selectedService?.duracao || 30}
+          initialDate={dateTime}
           onSelect={(dt) => {
             setDateTime(dt)
             handleNext()
@@ -159,7 +222,12 @@ export function BookingFlow({
           professional={selectedProf}
           service={selectedService}
           dateTime={dateTime}
-          onSuccess={onCancel}
+          initialData={infosCliente}
+          onSuccess={() => {
+            sessionStorage.removeItem(STORAGE_KEY)
+            onCancel()
+          }}
+          onChange={(data) => setInfosCliente(data)}
         />
       )}
     </div>
