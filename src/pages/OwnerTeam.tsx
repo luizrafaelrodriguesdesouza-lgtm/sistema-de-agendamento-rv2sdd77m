@@ -18,6 +18,7 @@ import { useAuth } from '@/hooks/use-auth'
 import { useRealtime } from '@/hooks/use-realtime'
 import useMasterStore from '@/stores/useMasterStore'
 import { Check, X, Plus } from 'lucide-react'
+import { Link } from 'react-router-dom'
 
 export default function OwnerTeam() {
   const { user } = useAuth()
@@ -27,6 +28,8 @@ export default function OwnerTeam() {
   const [loading, setLoading] = useState(true)
   const [rejectingId, setRejectingId] = useState<string | null>(null)
   const [rejectionReason, setRejectionReason] = useState('')
+  const [planLimit, setPlanLimit] = useState<number>(0)
+  const [currentCount, setCurrentCount] = useState<number>(0)
 
   const [isAddOpen, setIsAddOpen] = useState(false)
   const [newProf, setNewProf] = useState({
@@ -54,6 +57,19 @@ export default function OwnerTeam() {
         sort: '-created',
       })
       setProfessionals(profs)
+      setCurrentCount(profs.length)
+
+      try {
+        const subs = await pb.collection('subscriptions').getFullList({
+          filter: `user_id = '${targetId}'`,
+          expand: 'plan_id',
+        })
+        if (subs.length > 0 && subs[0].expand?.plan_id) {
+          setPlanLimit(subs[0].expand.plan_id.limite_profissionais)
+        }
+      } catch (err) {
+        // ignore
+      }
     } catch (e) {
       console.error(e)
     } finally {
@@ -126,10 +142,23 @@ export default function OwnerTeam() {
           <p className="text-slate-500 mt-1">Gerencie os profissionais da sua clínica.</p>
         </div>
         {getTargetId() && (
-          <Button onClick={() => setIsAddOpen(true)}>
-            <Plus className="w-4 h-4 mr-2" />
-            Adicionar Profissional
-          </Button>
+          <div className="flex items-center gap-3">
+            {currentCount >= planLimit && planLimit > 0 && (
+              <div className="text-sm text-rose-600 bg-rose-50 px-3 py-1.5 rounded-lg border border-rose-200">
+                Limite atingido ({currentCount}/{planLimit}).{' '}
+                <Link to="/dono/plano" className="font-bold underline">
+                  Fazer upgrade
+                </Link>
+              </div>
+            )}
+            <Button
+              onClick={() => setIsAddOpen(true)}
+              disabled={currentCount >= planLimit && planLimit > 0}
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Adicionar Profissional
+            </Button>
+          </div>
         )}
       </div>
 

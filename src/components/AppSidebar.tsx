@@ -8,6 +8,7 @@ import {
   LogOut,
   FileText,
   PieChart,
+  Star,
 } from 'lucide-react'
 import {
   Sidebar,
@@ -125,6 +126,13 @@ export function AppSidebar() {
                     >
                       <Link to="/dashboard/proprietario/relatorios">
                         <PieChart /> Relatórios
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild isActive={location.pathname === '/dono/plano'}>
+                      <Link to="/dono/plano">
+                        <Star /> Meu Plano
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>

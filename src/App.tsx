@@ -20,6 +20,7 @@ import ProfessionalSchedule from './pages/ProfessionalSchedule'
 import OwnerDashboard from './pages/OwnerDashboard'
 import OwnerTeam from './pages/OwnerTeam'
 import OwnerServices from './pages/OwnerServices'
+import OwnerPlan from './pages/OwnerPlan'
 import AdminDashboard from './pages/admin/AdminDashboard'
 import AdminApprovals from './pages/admin/AdminApprovals'
 import AdminWebhooks from './pages/admin/AdminWebhooks'
@@ -65,6 +66,7 @@ const App = () => (
             <Route path="/dashboard/proprietario/equipe" element={<OwnerTeam />} />
             <Route path="/dashboard/proprietario/servicos" element={<OwnerServices />} />
             <Route path="/dashboard/proprietario/relatorios" element={<Reports />} />
+            <Route path="/dono/plano" element={<OwnerPlan />} />
             <Route element={<AdminRoute />}>
               {' '}
               <Route path="/admin/dashboard" element={<AdminDashboard />} />
