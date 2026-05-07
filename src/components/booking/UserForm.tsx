@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/hooks/use-toast'
-import { format } from 'date-fns'
+import { format, setHours, setMinutes } from 'date-fns'
 import pb from '@/lib/pocketbase/client'
 import { useAuth } from '@/hooks/use-auth'
 import { useForm } from 'react-hook-form'
@@ -63,15 +63,14 @@ export function UserForm({
 
     try {
       const [hour, minute] = dateTime.time.split(':')
-      const dt = new Date(dateTime.date)
-      dt.setHours(parseInt(hour), parseInt(minute), 0, 0)
+      const dt = setMinutes(setHours(new Date(dateTime.date), parseInt(hour)), parseInt(minute))
 
       const ref = Math.random().toString(36).substring(2, 8).toUpperCase()
 
       const payload: any = {
         profissional_id: professional.id,
         servico_id: service.id,
-        data: dt.toISOString(), // Converts to UTC string for PB
+        data: dt.toISOString(), // Automatically converted to UTC
         status: 'pendente',
         referencia: ref,
         ...values,

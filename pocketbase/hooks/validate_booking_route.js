@@ -1,11 +1,11 @@
-onRecordCreateRequest((e) => {
+routerAdd('POST', '/backend/v1/agendamentos/validate', (e) => {
   const body = e.requestInfo().body
   if (!body.profissional_id || !body.servico_id || !body.data) {
-    return e.next()
+    return e.badRequestError('Dados incompletos')
   }
 
   const reqTime = new Date(body.data).getTime()
-  if (isNaN(reqTime)) return e.next()
+  if (isNaN(reqTime)) return e.badRequestError('Data inválida')
 
   let bufferMinutes = 15
   try {
@@ -65,16 +65,22 @@ onRecordCreateRequest((e) => {
     if (conflicts.length > 0) {
       $app
         .logger()
-        .error('Conflict detected', 'payload', body, 'reason', 'Time overlap with buffers')
+        .error(
+          'Conflict detected via validation endpoint',
+          'payload',
+          body,
+          'reason',
+          'Time overlap with buffers',
+        )
       return e.json(409, {
         status: 'conflict',
         message: 'Horário indisponível, escolha outro',
         details: conflicts,
       })
     }
-  } catch (err) {
-    $app.logger().error('Error validating booking', 'msg', err.message)
-  }
 
-  return e.next()
-}, 'agendamentos')
+    return e.json(200, { status: 'ok' })
+  } catch (err) {
+    return e.internalServerError(err.message)
+  }
+})

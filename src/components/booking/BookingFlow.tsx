@@ -205,10 +205,11 @@ export function BookingFlow({
         </div>
       )}
 
-      {step === 3 && (
+      {step === 3 && selectedService && selectedProf && (
         <DateTimePicker
-          professionalId={selectedProf?.id}
-          serviceDuration={selectedService?.duracao || 30}
+          professionalId={selectedProf.id}
+          serviceId={selectedService.id}
+          serviceDuration={selectedService.duracao || 30}
           initialDate={dateTime}
           onSelect={(dt) => {
             setDateTime(dt)

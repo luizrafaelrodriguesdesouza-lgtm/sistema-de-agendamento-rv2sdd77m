@@ -4,14 +4,28 @@ import { Button } from '@/components/ui/button'
 import { ptBR } from 'date-fns/locale'
 import pb from '@/lib/pocketbase/client'
 import { useRealtime } from '@/hooks/use-realtime'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import * as z from 'zod'
+import { setHours, setMinutes, format } from 'date-fns'
+import { Form, FormField, FormItem, FormMessage, FormControl } from '@/components/ui/form'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { cn } from '@/lib/utils'
+import { AlertCircle } from 'lucide-react'
+
+const formSchema = z.object({
+  time: z.string().min(1, 'Selecione um horário'),
+})
 
 export function DateTimePicker({
   professionalId,
+  serviceId,
   serviceDuration,
   initialDate,
   onSelect,
 }: {
   professionalId: string
+  serviceId: string
   serviceDuration: number
   initialDate?: { date: string; time: string } | null
   onSelect: (dt: { date: string; time: string }) => void
@@ -19,16 +33,38 @@ export function DateTimePicker({
   const [date, setDate] = useState<Date | undefined>(
     initialDate ? new Date(initialDate.date) : new Date(),
   )
-  const [time, setTime] = useState<string | null>(initialDate ? initialDate.time : null)
 
   const [availableTimes, setAvailableTimes] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
+  const [isChecking, setIsChecking] = useState(false)
+  const [conflictDetails, setConflictDetails] = useState<any[] | null>(null)
+  const [suggestedTimes, setSuggestedTimes] = useState<string[]>([])
+
   const browserTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone
+
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      time: initialDate?.time || '',
+    },
+  })
+
+  const timeValue = form.watch('time')
 
   const fetchTimes = useCallback(async () => {
     if (!date || !professionalId) return
     setLoading(true)
     try {
+      let bufferMinutes = 15
+      try {
+        const settings = await pb.collection('settings').getList(1, 1)
+        if (settings.items.length > 0) {
+          bufferMinutes = settings.items[0].buffer_duration ?? 15
+        }
+      } catch {
+        /* intentionally ignored */
+      }
+
       const dayOfWeek = date.getDay()
       const schedule = await pb.collection('horarios_disponiveis').getFullList({
         filter: `profissional_id = '${professionalId}' && dia_semana = ${dayOfWeek}`,
@@ -36,19 +72,18 @@ export function DateTimePicker({
 
       const startOfDay = new Date(date)
       startOfDay.setHours(0, 0, 0, 0)
-      const endOfDay = new Date(date)
-      endOfDay.setHours(23, 59, 59, 999)
+      const searchStart = new Date(startOfDay.getTime() - 24 * 60 * 60000)
+      const searchEnd = new Date(startOfDay.getTime() + 48 * 60 * 60000)
 
       const apps = await pb.collection('agendamentos').getFullList({
-        filter: `profissional_id = '${professionalId}' && data >= '${startOfDay.toISOString().replace('T', ' ')}' && data <= '${endOfDay.toISOString().replace('T', ' ')}' && status != 'cancelado'`,
+        filter: `profissional_id = '${professionalId}' && data >= '${searchStart.toISOString().replace('T', ' ')}' && data <= '${searchEnd.toISOString().replace('T', ' ')}' && status != 'cancelado'`,
         expand: 'servico_id',
       })
 
       const busyBlocks = apps.map((a) => {
         const start = new Date(a.data)
         const dur = a.expand?.servico_id?.duracao || 30
-        const end = new Date(start.getTime() + dur * 60000)
-        return { start, end }
+        return { start, dur }
       })
 
       let times: string[] = []
@@ -67,12 +102,14 @@ export function DateTimePicker({
             const slotStart = new Date(currentSlot)
             const slotEnd = new Date(currentSlot.getTime() + serviceDuration * 60000)
 
-            const isBusy = busyBlocks.some(
-              (b) =>
-                (slotStart >= b.start && slotStart < b.end) ||
-                (slotEnd > b.start && slotEnd <= b.end) ||
-                (slotStart <= b.start && slotEnd >= b.end),
-            )
+            const reqStart = slotStart.getTime() - bufferMinutes * 60000
+            const reqEnd = slotEnd.getTime() + bufferMinutes * 60000
+
+            const isBusy = busyBlocks.some((b) => {
+              const bStart = b.start.getTime() - bufferMinutes * 60000
+              const bEnd = b.start.getTime() + b.dur * 60000 + bufferMinutes * 60000
+              return bStart < reqEnd && bEnd > reqStart
+            })
 
             const isPast = slotStart < new Date()
 
@@ -82,15 +119,13 @@ export function DateTimePicker({
               )
             }
 
-            currentSlot = new Date(currentSlot.getTime() + 30 * 60000)
+            currentSlot = new Date(currentSlot.getTime() + 15 * 60000)
           }
         }
       }
 
-      setAvailableTimes([...new Set(times)].sort())
-      if (time && !times.includes(time)) {
-        setTime(null)
-      }
+      const uniqueTimes = [...new Set(times)].sort()
+      setAvailableTimes(uniqueTimes)
     } catch (err) {
       console.error(err)
     } finally {
@@ -106,6 +141,52 @@ export function DateTimePicker({
     fetchTimes()
   })
 
+  const validateTime = async (t: string) => {
+    setIsChecking(true)
+    setConflictDetails(null)
+    setSuggestedTimes([])
+    try {
+      const [h, m] = t.split(':').map(Number)
+      const localDate = setMinutes(setHours(date!, h), m)
+
+      await pb.send('/backend/v1/agendamentos/validate', {
+        method: 'POST',
+        body: JSON.stringify({
+          profissional_id: professionalId,
+          servico_id: serviceId,
+          data: localDate.toISOString(),
+        }),
+        headers: { 'Content-Type': 'application/json' },
+      })
+
+      form.clearErrors('time')
+    } catch (err: any) {
+      if (err.status === 409 && err.response?.details) {
+        form.setError('time', { type: 'manual', message: err.response.message })
+        setConflictDetails(err.response.details)
+
+        const idx = availableTimes.indexOf(t)
+        if (idx !== -1) {
+          const suggestions = availableTimes.slice(idx + 1).slice(0, 3)
+          setSuggestedTimes(suggestions)
+        }
+      }
+    } finally {
+      setIsChecking(false)
+    }
+  }
+
+  const handleTimeSelect = (t: string) => {
+    form.setValue('time', t, { shouldValidate: true })
+    validateTime(t)
+  }
+
+  const handleContinue = form.handleSubmit((data) => {
+    if (date && data.time && !conflictDetails) {
+      onSelect({ date: date.toISOString(), time: data.time })
+    }
+  })
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 animate-fade-in-up">
       <div>
@@ -117,7 +198,11 @@ export function DateTimePicker({
             mode="single"
             selected={date}
             onSelect={(d) => {
-              if (d) setDate(d)
+              if (d) {
+                setDate(d)
+                form.setValue('time', '')
+                setConflictDetails(null)
+              }
             }}
             className="rounded-md"
             disabled={(d) => d < new Date(new Date().setHours(0, 0, 0, 0))}
@@ -141,31 +226,90 @@ export function DateTimePicker({
             Nenhum horário disponível para este dia.
           </p>
         ) : (
-          <div className="grid grid-cols-3 gap-3 max-h-64 overflow-y-auto pr-2 custom-scrollbar">
-            {availableTimes.map((t) => (
-              <Button
-                key={t}
-                variant={time === t ? 'default' : 'outline'}
-                onClick={() => setTime(t)}
-                className="w-full"
-              >
-                {t}
-              </Button>
-            ))}
-          </div>
-        )}
+          <Form {...form}>
+            <form onSubmit={handleContinue} className="space-y-6">
+              <FormField
+                control={form.control}
+                name="time"
+                render={() => (
+                  <FormItem>
+                    <FormControl>
+                      <div className="grid grid-cols-3 gap-3 max-h-64 overflow-y-auto pr-2 custom-scrollbar">
+                        {availableTimes.map((t) => {
+                          const isSelected = timeValue === t
+                          const isConflict = isSelected && conflictDetails !== null
 
-        <div className="mt-8">
-          <Button
-            className="w-full h-12"
-            disabled={!date || !time}
-            onClick={() => {
-              if (date && time) onSelect({ date: date.toISOString(), time })
-            }}
-          >
-            Continuar
-          </Button>
-        </div>
+                          return (
+                            <Tooltip key={t} delayDuration={0}>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  type="button"
+                                  variant={isSelected ? 'default' : 'outline'}
+                                  onClick={() => handleTimeSelect(t)}
+                                  className={cn(
+                                    'w-full transition-all',
+                                    isConflict &&
+                                      'border-destructive bg-destructive/10 text-destructive hover:bg-destructive/20 hover:text-destructive',
+                                    isChecking && isSelected && 'opacity-50',
+                                  )}
+                                >
+                                  {isChecking && isSelected ? '...' : t}
+                                  {isConflict && <AlertCircle className="w-4 h-4 ml-2" />}
+                                </Button>
+                              </TooltipTrigger>
+                              {isConflict && conflictDetails && (
+                                <TooltipContent
+                                  side="top"
+                                  className="bg-destructive text-destructive-foreground"
+                                >
+                                  <p className="font-semibold mb-1">Horário em conflito com:</p>
+                                  {conflictDetails.map((c: any, i: number) => (
+                                    <p key={i} className="text-xs">
+                                      - {c.cliente_nome} ({format(new Date(c.data), 'HH:mm')})
+                                    </p>
+                                  ))}
+                                </TooltipContent>
+                              )}
+                            </Tooltip>
+                          )
+                        })}
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {suggestedTimes.length > 0 && conflictDetails && (
+                <div className="bg-amber-50 p-3 rounded-lg border border-amber-200 animate-fade-in">
+                  <p className="text-amber-800 text-sm font-medium mb-2">Horários sugeridos:</p>
+                  <div className="flex gap-2">
+                    {suggestedTimes.map((st) => (
+                      <Button
+                        key={st}
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="border-amber-300 text-amber-700 hover:bg-amber-100"
+                        onClick={() => handleTimeSelect(st)}
+                      >
+                        {st}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <Button
+                type="submit"
+                className="w-full h-12"
+                disabled={!date || !timeValue || !!conflictDetails || isChecking}
+              >
+                {isChecking ? 'Verificando...' : 'Continuar'}
+              </Button>
+            </form>
+          </Form>
+        )}
       </div>
     </div>
   )

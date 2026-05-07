@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-07T14:28:47.865Z",
+  "generatedAt": "2026-05-07T14:59:53.170Z",
   "collections": [
     {
       "name": "users",
@@ -173,6 +173,12 @@
         {
           "name": "webhook_secret",
           "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "buffer_duration",
+          "type": "number",
           "required": false,
           "system": false
         }
@@ -446,7 +452,9 @@
           "system": false
         }
       ],
-      "indexes": []
+      "indexes": [
+        "CREATE INDEX `idx_agendamentos_prof_data` ON `agendamentos` (profissional_id, data)"
+      ]
     },
     {
       "name": "reminders",
