@@ -53,6 +53,7 @@ const App = () => (
             <Route path="/register" element={<Register />} />
             <Route path="/pendente" element={<PendingApproval />} />
             <Route path="/meus-agendamentos" element={<ClientDashboard />} />
+            <Route path="/cliente/dashboard" element={<ClientDashboard />} />
             <Route path="/consulta/:reference" element={<Tracking />} />
           </Route>
           <Route element={<DashboardLayout />}>

@@ -1,118 +1,184 @@
 import { useEffect, useState } from 'react'
-import { Card, CardContent } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Link } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { useAuth } from '@/hooks/use-auth'
 import pb from '@/lib/pocketbase/client'
 import { useRealtime } from '@/hooks/use-realtime'
-import { format } from 'date-fns'
-import { CalendarDays } from 'lucide-react'
+import { useToast } from '@/hooks/use-toast'
+import { BookingFlow } from '@/components/booking/BookingFlow'
+import { UpcomingSection } from '@/components/client-dashboard/UpcomingSection'
+import { HistorySection } from '@/components/client-dashboard/HistorySection'
+import { AvailableServicesSection } from '@/components/client-dashboard/AvailableServicesSection'
 
 export default function ClientDashboard() {
-  const { user } = useAuth()
-  const [appointments, setAppointments] = useState<any[]>([])
-  const [loadingApps, setLoadingApps] = useState(true)
+  const { user, loading: authLoading } = useAuth()
+  const navigate = useNavigate()
+  const { toast } = useToast()
 
-  const loadAppointments = async () => {
+  const [appointments, setAppointments] = useState<any[]>([])
+  const [services, setServices] = useState<any[]>([])
+  const [professionals, setProfessionals] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+
+  const [isBookingOpen, setIsBookingOpen] = useState(false)
+  const [bookingProprietarioId, setBookingProprietarioId] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      navigate('/login')
+    }
+  }, [user, authLoading, navigate])
+
+  const loadData = async (showLoader = true) => {
     if (!user) return
+    if (showLoader) setLoading(true)
     try {
-      const records = await pb.collection('agendamentos').getFullList({
-        filter: `cliente_id = '${user.id}'`,
-        sort: '-data',
-        expand: 'servico_id,profissional_id',
-      })
-      setAppointments(records)
+      const [apps, servs, profs] = await Promise.all([
+        pb.collection('agendamentos').getFullList({
+          filter: `cliente_id = '${user.id}'`,
+          expand: 'servico_id,profissional_id',
+        }),
+        pb.collection('servicos').getFullList({
+          filter: `ativo = true`,
+          expand: 'proprietario_id,profissional_id',
+        }),
+        pb.collection('users').getFullList({
+          filter: `tipo = 'profissional' || tipo = 'proprietario'`,
+        }),
+      ])
+      setAppointments(apps)
+      setServices(servs)
+      setProfessionals(profs)
     } catch (err) {
       console.error(err)
     } finally {
-      setLoadingApps(false)
+      if (showLoader) setLoading(false)
     }
   }
 
   useEffect(() => {
-    loadAppointments()
+    if (user) loadData(true)
   }, [user])
 
   useRealtime('agendamentos', () => {
-    loadAppointments()
+    loadData(false)
   })
 
+  const handleCancel = async (id: string) => {
+    if (!confirm('Deseja cancelar este agendamento?')) return
+    try {
+      await pb.collection('agendamentos').update(id, { status: 'cancelado' })
+      toast({ title: 'Sucesso', description: 'Agendamento cancelado.' })
+      loadData(false)
+    } catch (e) {
+      toast({
+        title: 'Erro',
+        description: 'Erro ao cancelar o agendamento.',
+        variant: 'destructive',
+      })
+    }
+  }
+
+  const handleReschedule = (app: any) => {
+    const propId = app.expand?.profissional_id?.proprietario_id || app.profissional_id
+    if (propId) {
+      setBookingProprietarioId(propId)
+      setIsBookingOpen(true)
+      toast({
+        title: 'Remarcar',
+        description:
+          'Selecione um novo horário. Lembre-se de cancelar o agendamento anterior se necessário.',
+      })
+    } else {
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível identificar o estabelecimento.',
+        variant: 'destructive',
+      })
+    }
+  }
+
+  const handleBook = (service: any) => {
+    const propId =
+      service.proprietario_id || service.expand?.proprietario_id?.id || service.profissional_id
+    if (propId) {
+      setBookingProprietarioId(propId)
+      setIsBookingOpen(true)
+    } else {
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível identificar o estabelecimento.',
+        variant: 'destructive',
+      })
+    }
+  }
+
+  const isPageLoading = authLoading || (loading && !appointments.length && !services.length)
+
+  if (isPageLoading) {
+    return (
+      <div className="container max-w-5xl mx-auto py-8 px-4 flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    )
+  }
+
   return (
-    <div className="container py-8 px-4 animate-fade-in flex-1 max-w-6xl mx-auto">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-        <div>
-          <h2 className="text-3xl font-bold text-slate-800">
-            Olá, {user?.name?.split(' ')[0] || 'Cliente'}!
-          </h2>
-          <p className="text-slate-500 mt-1">Aqui estão seus agendamentos.</p>
-        </div>
-      </div>
+    <div className="container max-w-5xl mx-auto py-8 px-4 space-y-12 animate-fade-in">
+      <header className="mb-8">
+        <h1 className="text-3xl font-bold text-slate-800">
+          Olá, {user?.name?.split(' ')[0] || 'Cliente'}!
+        </h1>
+        <p className="text-slate-500 mt-1">
+          Bem-vindo ao seu painel de controle. Gerencie seus agendamentos e histórico.
+        </p>
+      </header>
 
-      <div className="space-y-6">
-        <div className="flex items-center gap-2 mb-4">
-          <CalendarDays className="w-5 h-5 text-primary" />
-          <h3 className="text-xl font-semibold text-slate-800">Meus Agendamentos</h3>
-        </div>
+      <UpcomingSection
+        appointments={appointments}
+        loading={loading}
+        onCancel={handleCancel}
+        onReschedule={handleReschedule}
+      />
 
-        {loadingApps ? (
-          <div className="text-center py-20 bg-slate-50 rounded-2xl border border-dashed">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-slate-500">Carregando seus agendamentos...</p>
-          </div>
-        ) : appointments.length === 0 ? (
-          <div className="text-center py-20 bg-slate-50 rounded-2xl border border-dashed flex flex-col items-center justify-center">
-            <CalendarDays className="w-12 h-12 text-slate-300 mb-4" />
-            <p className="text-slate-600 font-medium mb-2">Você ainda não tem agendamentos.</p>
-            <p className="text-slate-500 text-sm mb-6">
-              Acesse o link do seu estabelecimento de preferência para marcar um horário.
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {appointments.map((app) => {
-              const isConfirmed = app.status === 'confirmado'
+      <HistorySection appointments={appointments} professionals={professionals} loading={loading} />
 
-              return (
-                <Link to={`/consulta/${app.referencia}`} key={app.id} className="block group">
-                  <Card
-                    className={`h-full transition-all duration-300 border-2 ${isConfirmed ? 'hover:border-primary/50 hover:shadow-md' : 'opacity-80 hover:opacity-100'}`}
-                  >
-                    <CardContent className="p-6 flex flex-col h-full">
-                      <div className="flex justify-between items-start mb-4">
-                        <Badge
-                          variant="secondary"
-                          className={isConfirmed ? 'bg-emerald-100 text-emerald-700' : ''}
-                        >
-                          {app.status.toUpperCase()}
-                        </Badge>
-                        <span className="text-sm font-semibold text-slate-700 bg-slate-100 px-2 py-1 rounded">
-                          {format(new Date(app.data), 'dd/MM/yyyy HH:mm')}
-                        </span>
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="font-bold text-lg text-slate-800 leading-tight">
-                          {app.expand?.servico_id?.nome || 'Serviço'}
-                        </h3>
-                        <p className="text-muted-foreground text-sm mt-1">
-                          com {app.expand?.profissional_id?.name || 'Profissional'}
-                        </p>
-                      </div>
-                      <div className="mt-6 pt-4 border-t flex justify-between items-center">
-                        <span className="text-xs font-mono text-slate-400">
-                          Ref: {app.referencia}
-                        </span>
-                        <span className="text-sm font-medium text-primary group-hover:underline">
-                          Ver detalhes →
-                        </span>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </Link>
-              )
-            })}
-          </div>
-        )}
-      </div>
+      <AvailableServicesSection
+        services={services}
+        professionals={professionals}
+        loading={loading}
+        onBook={handleBook}
+      />
+
+      <Dialog
+        open={isBookingOpen}
+        onOpenChange={(open) => {
+          setIsBookingOpen(open)
+          if (!open) {
+            setBookingProprietarioId(null)
+            loadData(false)
+          }
+        }}
+      >
+        <DialogContent className="max-w-4xl p-0 bg-transparent border-none shadow-none">
+          <DialogTitle className="sr-only">Novo Agendamento</DialogTitle>
+          <DialogDescription className="sr-only">
+            Formulário para agendamento de serviço
+          </DialogDescription>
+          {bookingProprietarioId && (
+            <div className="w-full bg-background rounded-2xl overflow-hidden">
+              <BookingFlow
+                proprietarioId={bookingProprietarioId}
+                onCancel={() => {
+                  setIsBookingOpen(false)
+                  setBookingProprietarioId(null)
+                  loadData(false)
+                }}
+              />
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
