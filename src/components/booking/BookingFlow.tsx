@@ -10,6 +10,8 @@ import { RotateCcw } from 'lucide-react'
 
 const STORAGE_KEY = 'booking_state'
 
+import { useNavigate } from 'react-router-dom'
+
 export function BookingFlow({
   proprietarioId,
   onCancel,
@@ -17,6 +19,7 @@ export function BookingFlow({
   proprietarioId: string
   onCancel: () => void
 }) {
+  const navigate = useNavigate()
   const [step, setStep] = useState(1)
   const [selectedService, setSelectedService] = useState<any | null>(null)
   const [selectedProf, setSelectedProf] = useState<any | null>(null)
@@ -160,7 +163,11 @@ export function BookingFlow({
       {step === 1 && (
         <div className="w-full">
           {loadingServices ? (
-            <p className="text-center py-8 text-slate-500">Carregando serviços...</p>
+            <div className="space-y-4">
+              <div className="h-24 w-full bg-slate-100 rounded-xl animate-pulse border border-slate-200"></div>
+              <div className="h-24 w-full bg-slate-100 rounded-xl animate-pulse border border-slate-200"></div>
+              <div className="h-24 w-full bg-slate-100 rounded-xl animate-pulse border border-slate-200"></div>
+            </div>
           ) : services.length === 0 ? (
             <div className="text-center py-8 bg-slate-50 rounded-xl border">
               <p className="text-slate-500">Nenhum serviço disponível.</p>
@@ -183,9 +190,10 @@ export function BookingFlow({
       {step === 2 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           {loadingProfs ? (
-            <p className="col-span-full text-center py-8 text-slate-500">
-              Carregando profissionais...
-            </p>
+            <>
+              <div className="h-40 w-full bg-slate-100 rounded-xl animate-pulse border border-slate-200"></div>
+              <div className="h-40 w-full bg-slate-100 rounded-xl animate-pulse border border-slate-200"></div>
+            </>
           ) : professionals.length === 0 ? (
             <div className="col-span-full text-center py-8 bg-slate-50 rounded-xl border">
               <p className="text-slate-500">Nenhum profissional disponível para este serviço.</p>
@@ -220,20 +228,14 @@ export function BookingFlow({
 
       {step === 4 && selectedProf && selectedService && dateTime && (
         <UserForm
+          proprietarioId={proprietarioId}
           professional={selectedProf}
           service={selectedService}
           dateTime={dateTime}
           initialData={infosCliente}
-          onSuccess={() => {
+          onSuccess={(ref) => {
             sessionStorage.removeItem(STORAGE_KEY)
-            import('@/hooks/use-toast').then(({ toast }) => {
-              toast({
-                title: 'Agendamento Confirmado!',
-                description:
-                  'Seu horário foi reservado. Você receberá uma confirmação no WhatsApp em breve.',
-              })
-            })
-            onCancel()
+            navigate(`/consulta/${ref}`)
           }}
           onChange={(data) => setInfosCliente(data)}
         />

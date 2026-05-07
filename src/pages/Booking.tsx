@@ -3,6 +3,7 @@ import { BookingFlow } from '@/components/booking/BookingFlow'
 import { useEffect, useState } from 'react'
 import pb from '@/lib/pocketbase/client'
 import { hexToHsl } from '@/lib/colors'
+import { Button } from '@/components/ui/button'
 
 export default function Booking() {
   const { proprietarioId, slug } = useParams()
@@ -13,9 +14,13 @@ export default function Booking() {
   const [resolvedProprietarioId, setResolvedProprietarioId] = useState<string | null>(
     proprietarioId || null,
   )
+  const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const fetchClinic = async () => {
+      setLoading(true)
+      setError(null)
       try {
         if (proprietarioId) {
           const record = await pb.collection('users').getOne(proprietarioId)
@@ -30,22 +35,53 @@ export default function Booking() {
             setClinic(records[0])
             setResolvedProprietarioId(records[0].id)
           } else {
-            navigate('/')
+            setError('Salão não encontrado. Verifique o link.')
           }
         } else {
-          navigate('/')
+          setError('Salão não encontrado. Verifique o link.')
         }
       } catch (err) {
-        navigate('/')
+        setError('Salão não encontrado. Verifique o link.')
+      } finally {
+        setLoading(false)
       }
     }
     fetchClinic()
-  }, [proprietarioId, salao, navigate])
+  }, [proprietarioId, salao])
 
-  if (!resolvedProprietarioId || !clinic) {
+  if (error) {
     return (
-      <div className="flex justify-center py-20 min-h-[calc(100vh-64px)] items-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      <div className="flex justify-center py-20 min-h-[calc(100vh-64px)] items-center bg-slate-50">
+        <div className="text-center p-8 bg-white rounded-2xl shadow-sm border max-w-md w-full mx-4">
+          <div className="w-16 h-16 bg-red-100 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl font-bold">
+            !
+          </div>
+          <h2 className="text-xl font-bold text-slate-800 mb-2">Ops!</h2>
+          <p className="text-slate-500 mb-6">{error}</p>
+          <Button onClick={() => navigate('/')} className="w-full h-12">
+            Voltar ao início
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
+  if (loading || !resolvedProprietarioId || !clinic) {
+    return (
+      <div className="flex-1 py-12 px-4 md:px-8 bg-slate-50 min-h-[calc(100vh-64px)]">
+        <div className="max-w-4xl mx-auto mb-8 flex flex-col items-center">
+          <div className="h-20 w-20 bg-slate-200 rounded-xl animate-pulse mb-4"></div>
+          <div className="h-8 w-64 bg-slate-200 rounded-lg animate-pulse mb-2"></div>
+          <div className="h-4 w-48 bg-slate-200 rounded-lg animate-pulse"></div>
+        </div>
+        <div className="max-w-4xl mx-auto bg-white rounded-2xl p-6 md:p-10 border">
+          <div className="h-8 w-48 bg-slate-200 rounded-lg animate-pulse mb-8"></div>
+          <div className="space-y-4">
+            <div className="h-24 w-full bg-slate-100 rounded-xl animate-pulse"></div>
+            <div className="h-24 w-full bg-slate-100 rounded-xl animate-pulse"></div>
+            <div className="h-24 w-full bg-slate-100 rounded-xl animate-pulse"></div>
+          </div>
+        </div>
       </div>
     )
   }

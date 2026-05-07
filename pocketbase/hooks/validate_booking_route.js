@@ -1,86 +1,75 @@
 routerAdd('POST', '/backend/v1/agendamentos/validate', (e) => {
   const body = e.requestInfo().body
-  if (!body.profissional_id || !body.servico_id || !body.data) {
-    return e.badRequestError('Dados incompletos')
+  if (!body.profissional_id || !body.data) {
+    return e.json(400, { message: 'Dados inválidos' })
   }
 
-  const reqTime = new Date(body.data).getTime()
-  if (isNaN(reqTime)) return e.badRequestError('Data inválida')
+  const reqStart = new Date(body.data)
+
+  let duracao = 30
+  if (body.servico_id) {
+    try {
+      const serv = $app.findRecordById('servicos', body.servico_id)
+      duracao = serv.getInt('duracao') || 30
+    } catch (_) {}
+  }
 
   let bufferMinutes = 15
   try {
     const settings = $app.findRecordsByFilter('settings', '', '', 1, 0)
-    if (settings.length > 0) {
+    if (settings && settings.length > 0) {
       bufferMinutes = settings[0].getInt('buffer_duration') || 15
     }
   } catch (_) {}
 
-  try {
-    const servico = $app.findRecordById('servicos', body.servico_id)
-    const duracao = servico.getInt('duracao') || 30
+  const reqEnd = new Date(reqStart.getTime() + duracao * 60000)
 
-    const requestedStart = reqTime - bufferMinutes * 60000
-    const requestedEnd = reqTime + duracao * 60000 + bufferMinutes * 60000
+  const startStr = new Date(reqStart.getTime() - 24 * 60000).toISOString().replace('T', ' ')
+  const endStr = new Date(reqEnd.getTime() + 24 * 60000).toISOString().replace('T', ' ')
 
-    const searchStart = new Date(requestedStart - 24 * 60 * 60000)
-    const searchEnd = new Date(requestedEnd + 24 * 60 * 60000)
+  const agendamentos = $app.findRecordsByFilter(
+    'agendamentos',
+    `profissional_id = '${body.profissional_id}' && status != 'cancelado' && data >= '${startStr}' && data <= '${endStr}'`,
+    '',
+    100,
+    0,
+  )
 
-    const apps = $app.findRecordsByFilter(
-      'agendamentos',
-      `profissional_id = '${body.profissional_id}' && status != 'cancelado' && data >= '${searchStart.toISOString().replace('T', ' ')}' && data <= '${searchEnd.toISOString().replace('T', ' ')}'`,
-      '',
-      100,
-      0,
-    )
-
-    const conflicts = []
-
-    for (const app of apps) {
-      let dateStr = app.getString('data')
-      if (!dateStr.endsWith('Z')) dateStr = dateStr.replace(' ', 'T') + 'Z'
-
-      const appTime = new Date(dateStr).getTime()
-      const appServicoId = app.getString('servico_id')
-      let appDuracao = 30
-
-      if (appServicoId) {
-        try {
-          const appServico = $app.findRecordById('servicos', appServicoId)
-          appDuracao = appServico.getInt('duracao') || 30
-        } catch (_) {}
+  const conflicts = []
+  for (const a of agendamentos) {
+    const aStart = new Date(a.getString('data'))
+    let aDur = 30
+    try {
+      const sId = a.getString('servico_id')
+      if (sId) {
+        const s = $app.findRecordById('servicos', sId)
+        aDur = s.getInt('duracao') || 30
       }
+    } catch (_) {}
 
-      const existingStart = appTime - bufferMinutes * 60000
-      const existingEnd = appTime + appDuracao * 60000 + bufferMinutes * 60000
+    const aEnd = new Date(aStart.getTime() + aDur * 60000)
 
-      if (existingStart < requestedEnd && existingEnd > requestedStart) {
-        conflicts.push({
-          cliente_nome: app.getString('cliente_nome') || 'Cliente',
-          data: app.getString('data'),
-          profissional_id: app.getString('profissional_id'),
-        })
-      }
-    }
+    const bStart = new Date(aStart.getTime() - bufferMinutes * 60000)
+    const bEnd = new Date(aEnd.getTime() + bufferMinutes * 60000)
 
-    if (conflicts.length > 0) {
-      $app
-        .logger()
-        .error(
-          'Conflict detected via validation endpoint',
-          'payload',
-          body,
-          'reason',
-          'Time overlap with buffers',
-        )
-      return e.json(409, {
-        status: 'conflict',
-        message: 'Horário indisponível, escolha outro',
-        details: conflicts,
+    const rbStart = new Date(reqStart.getTime() - bufferMinutes * 60000)
+    const rbEnd = new Date(reqEnd.getTime() + bufferMinutes * 60000)
+
+    if (bStart < rbEnd && bEnd > rbStart) {
+      conflicts.push({
+        id: a.id,
+        data: a.getString('data'),
+        cliente_nome: a.getString('cliente_nome') || 'Cliente',
       })
     }
-
-    return e.json(200, { status: 'ok' })
-  } catch (err) {
-    return e.internalServerError(err.message)
   }
+
+  if (conflicts.length > 0) {
+    return e.json(409, {
+      message: 'Horário em conflito com outro agendamento.',
+      details: conflicts,
+    })
+  }
+
+  return e.json(200, { success: true })
 })

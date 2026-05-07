@@ -24,6 +24,7 @@ const formSchema = z.object({
 })
 
 export function UserForm({
+  proprietarioId,
   professional,
   service,
   dateTime,
@@ -31,11 +32,12 @@ export function UserForm({
   onSuccess,
   onChange,
 }: {
+  proprietarioId: string
   professional: any
   service: any
   dateTime: { date: string; time: string }
   initialData?: { cliente_nome: string; cliente_email: string; cliente_telefone: string } | null
-  onSuccess: () => void
+  onSuccess: (ref: string) => void
   onChange?: (data: any) => void
 }) {
   const { user } = useAuth()
@@ -68,6 +70,7 @@ export function UserForm({
       const ref = Math.random().toString(36).substring(2, 8).toUpperCase()
 
       const payload: any = {
+        proprietario_id: proprietarioId,
         profissional_id: professional.id,
         servico_id: service.id,
         data: dt.toISOString(), // Automatically converted to UTC
@@ -86,7 +89,7 @@ export function UserForm({
         title: 'Agendamento Confirmado!',
         description: `Sua referência é: ${ref}`,
       })
-      onSuccess()
+      onSuccess(ref)
     } catch (err: any) {
       const msg = err.response?.message || err.message || 'Erro ao agendar'
       toast({ title: 'Erro ao agendar', description: msg, variant: 'destructive' })
