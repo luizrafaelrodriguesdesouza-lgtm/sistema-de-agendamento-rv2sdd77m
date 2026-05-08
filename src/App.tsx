@@ -49,6 +49,7 @@ const App = () => (
             <Route path="/" element={<IndexRouteWrapper />} />
             <Route path="/:slug" element={<Booking />} />
             <Route path="/agendar/:proprietarioId" element={<Booking />} />
+            <Route path="/booking/:proprietarioId" element={<Booking />} />
             <Route path="/login" element={<Login />} />
             <Route path="/cadastro" element={<Register />} />
             <Route path="/register" element={<Register />} />
