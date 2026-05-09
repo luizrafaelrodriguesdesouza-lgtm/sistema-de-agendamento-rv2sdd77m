@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { useAuth } from '@/hooks/use-auth'
 import { useToast } from '@/hooks/use-toast'
 import { getErrorMessage } from '@/lib/pocketbase/errors'
+import { Logo } from '@/components/Logo'
 
 export default function Login() {
   const [email, setEmail] = useState('')
@@ -69,8 +70,8 @@ export default function Login() {
     <div className="container max-w-md py-20 px-4 animate-fade-in-up flex-1 flex flex-col justify-center">
       <Card className="shadow-elevation border-0">
         <CardHeader className="text-center pb-8">
-          <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-            <span className="text-primary font-bold text-xl">E</span>
+          <div className="flex items-center justify-center mx-auto mb-4">
+            <Logo className="h-16" />
           </div>
           <CardTitle className="text-2xl font-bold">Acessar Conta</CardTitle>
           <CardDescription>Insira suas credenciais para continuar</CardDescription>

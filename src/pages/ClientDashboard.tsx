@@ -144,7 +144,7 @@ export default function ClientDashboard() {
 
       <HistorySection appointments={appointments} professionals={professionals} loading={loading} />
 
-      {clientProfile && !clientProfile.proprietario_id ? (
+      {user && !user.proprietario_id ? (
         <section className="space-y-6">
           <div className="flex items-center gap-2 border-b pb-2">
             <Sparkles className="w-6 h-6 text-amber-500" />
@@ -154,7 +154,7 @@ export default function ClientDashboard() {
           </div>
           <div className="text-center py-12 bg-slate-50 rounded-xl border border-dashed border-slate-300">
             <p className="text-slate-600 font-medium">
-              Você não está vinculado a nenhum salão. Contate o administrador.
+              Você não está vinculado a nenhuma clínica. Contate o administrador.
             </p>
           </div>
         </section>

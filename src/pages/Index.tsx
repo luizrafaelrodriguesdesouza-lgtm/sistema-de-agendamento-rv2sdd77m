@@ -4,7 +4,7 @@ import pb from '@/lib/pocketbase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { CalendarRange } from 'lucide-react'
+import { Logo } from '@/components/Logo'
 
 export default function Index() {
   const [code, setCode] = useState('')
@@ -40,10 +40,9 @@ export default function Index() {
     <div className="flex-1 min-h-[calc(100vh-64px)] bg-white flex flex-col items-center justify-center p-4">
       <Card className="w-full max-w-md shadow-xl border-slate-100">
         <CardHeader className="text-center pb-8 pt-10">
-          <div className="mx-auto bg-primary/10 w-16 h-16 rounded-full flex items-center justify-center mb-4">
-            <CalendarRange className="w-8 h-8 text-primary" />
+          <div className="mx-auto flex items-center justify-center mb-4">
+            <Logo className="h-20" />
           </div>
-          <CardTitle className="text-3xl font-bold text-slate-800">Agenda+</CardTitle>
           <p className="text-slate-500 mt-2">Acesse a página da unidade</p>
         </CardHeader>
         <CardContent className="pb-10 px-8">

@@ -14,6 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { useToast } from '@/hooks/use-toast'
 import pb from '@/lib/pocketbase/client'
 import { getErrorMessage } from '@/lib/pocketbase/errors'
+import { Logo } from '@/components/Logo'
 
 export default function Register() {
   const [step, setStep] = useState(1)
@@ -135,6 +136,9 @@ export default function Register() {
     <div className="container max-w-md py-20 px-4 animate-fade-in-up flex-1 flex flex-col justify-center">
       <Card className="shadow-elevation border-0">
         <CardHeader className="text-center pb-6">
+          <div className="flex items-center justify-center mx-auto mb-4">
+            <Logo className="h-12" />
+          </div>
           <CardTitle className="text-2xl font-bold">Criar Conta</CardTitle>
           <CardDescription>Passo {step} de 2</CardDescription>
         </CardHeader>

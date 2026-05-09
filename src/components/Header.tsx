@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/select'
 import useMasterStore from '@/stores/useMasterStore'
 import pb from '@/lib/pocketbase/client'
+import { Logo } from '@/components/Logo'
 
 export function Header() {
   const { user, signOut } = useAuth()
@@ -19,6 +20,9 @@ export function Header() {
   const [owners, setOwners] = useState<any[]>([])
   const [searchParams] = useSearchParams()
   const salao = searchParams.get('salao')
+
+  const [userSlug, setUserSlug] = useState<string | null>(null)
+  const [loadingSlug, setLoadingSlug] = useState(false)
 
   const loginUrl = salao ? `/login?salao=${salao}` : '/login'
   const registerUrl = salao ? `/cadastro?salao=${salao}` : '/cadastro'
@@ -32,6 +36,26 @@ export function Header() {
     }
   }, [user])
 
+  useEffect(() => {
+    async function fetchSlug() {
+      if (!user) return
+      if (user.tipo === 'proprietario' && user.slug) {
+        setUserSlug(user.slug)
+      } else if (user.tipo === 'profissional' && user.proprietario_id) {
+        setLoadingSlug(true)
+        try {
+          const owner = await pb.collection('users').getOne(user.proprietario_id)
+          setUserSlug(owner.slug)
+        } catch (e) {
+          console.error(e)
+        } finally {
+          setLoadingSlug(false)
+        }
+      }
+    }
+    fetchSlug()
+  }, [user])
+
   const handleLogout = () => {
     signOut()
     navigate('/login')
@@ -40,13 +64,21 @@ export function Header() {
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur shadow-sm">
       <div className="container flex h-16 items-center justify-between">
-        <Link to="/" className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-            <span className="text-white font-bold">E</span>
-          </div>
-          <span className="text-xl font-bold text-primary">EstéticaPro</span>
+        <Link to="/" className="flex items-center shrink-0">
+          <Logo className="h-10" />
         </Link>
         <div className="flex items-center gap-4">
+          {(user?.tipo === 'proprietario' || user?.tipo === 'profissional') && (
+            <div className="hidden sm:flex items-center justify-center mr-2">
+              {loadingSlug ? (
+                <div className="h-4 w-24 bg-slate-200 animate-pulse rounded"></div>
+              ) : userSlug ? (
+                <span className="text-sm font-medium text-slate-500 bg-slate-100 px-3 py-1 rounded-full">
+                  Código: {userSlug}
+                </span>
+              ) : null}
+            </div>
+          )}
           {user?.tipo === 'master' && (
             <Select
               value={selectedOwnerId || 'all'}
