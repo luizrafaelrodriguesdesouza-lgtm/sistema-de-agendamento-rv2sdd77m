@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils'
-import logoImg from '@/assets/generatedimage1778292859807-7f254.png'
+import logoImg from '@/assets/generatedimage1778295896332-605df.png'
 
 interface LogoProps {
   className?: string
