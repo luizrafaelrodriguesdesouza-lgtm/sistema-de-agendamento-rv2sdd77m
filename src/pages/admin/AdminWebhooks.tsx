@@ -14,6 +14,7 @@ export default function AdminWebhooks() {
   const [settingsId, setSettingsId] = useState<string | null>(null)
   const [logs, setLogs] = useState<any[]>([])
   const [saving, setSaving] = useState(false)
+  const [testing, setTesting] = useState(false)
   const { toast } = useToast()
 
   const loadSettings = async () => {
@@ -89,14 +90,21 @@ export default function AdminWebhooks() {
       return
     }
     try {
-      await pb.send('/backend/v1/webhooks/test', { method: 'POST' })
-      toast({ title: 'Teste Enviado', description: 'O evento de teste foi disparado.' })
-    } catch (e) {
+      setTesting(true)
+      const res = await pb.send('/backend/v1/webhooks/test', { method: 'POST' })
       toast({
-        title: 'Erro',
-        description: 'Falha ao disparar webhook de teste.',
+        title: 'Teste Enviado com Sucesso',
+        description: `O evento de teste foi disparado (HTTP ${res.status}) em ${res.timeMs || 0}ms.`,
+      })
+    } catch (e: any) {
+      const errorMessage = e.response?.message || e.message || 'Falha ao disparar webhook de teste.'
+      toast({
+        title: 'Erro no Teste',
+        description: errorMessage,
         variant: 'destructive',
       })
+    } finally {
+      setTesting(false)
     }
   }
 
@@ -140,11 +148,16 @@ export default function AdminWebhooks() {
               </p>
             </div>
             <div className="flex flex-col sm:flex-row gap-2 pt-2 sm:justify-end">
-              <Button variant="outline" onClick={handleTest} className="w-full sm:w-auto">
-                Testar Conexão
+              <Button
+                variant="outline"
+                onClick={handleTest}
+                disabled={testing || saving}
+                className="w-full sm:w-auto"
+              >
+                {testing ? 'Testando...' : 'Testar Conexão'}
               </Button>
               <Button onClick={handleSave} disabled={saving} className="w-full sm:w-auto">
-                Salvar Configurações
+                {saving ? 'Salvando...' : 'Salvar Configurações'}
               </Button>
             </div>
           </div>
@@ -166,25 +179,31 @@ export default function AdminWebhooks() {
               </p>
             ) : (
               logs.map((log) => (
-                <div
-                  key={log.id}
-                  className="flex justify-between items-center p-3 bg-slate-50 border rounded-lg"
-                >
-                  <div>
-                    <span className="font-semibold text-slate-700 block">{log.event}</span>
-                    <span className="text-xs text-slate-500">
-                      {format(new Date(log.created), 'dd/MM/yyyy HH:mm:ss')}
-                    </span>
+                <div key={log.id} className="flex flex-col p-3 bg-slate-50 border rounded-lg gap-2">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <span className="font-semibold text-slate-700 block">{log.event}</span>
+                      <span className="text-xs text-slate-500">
+                        {format(new Date(log.created), 'dd/MM/yyyy HH:mm:ss')}
+                      </span>
+                    </div>
+                    <Badge
+                      className={
+                        log.status >= 200 && log.status < 300
+                          ? 'bg-emerald-100 text-emerald-700 border-0'
+                          : 'bg-rose-100 text-rose-700 border-0'
+                      }
+                    >
+                      {log.status === 0 ? 'Erro de Rede' : `${log.status} HTTP`}
+                    </Badge>
                   </div>
-                  <Badge
-                    className={
-                      log.status >= 200 && log.status < 300
-                        ? 'bg-emerald-100 text-emerald-700 border-0'
-                        : 'bg-rose-100 text-rose-700 border-0'
-                    }
-                  >
-                    {log.status === 0 ? 'Erro de Rede' : `${log.status} HTTP`}
-                  </Badge>
+                  {log.response && (
+                    <div className="mt-2 p-2 bg-slate-100 rounded border border-slate-200 text-xs font-mono text-slate-600 overflow-x-auto max-h-32">
+                      {typeof log.response === 'string'
+                        ? log.response
+                        : JSON.stringify(log.response, null, 2)}
+                    </div>
+                  )}
                 </div>
               ))
             )}
