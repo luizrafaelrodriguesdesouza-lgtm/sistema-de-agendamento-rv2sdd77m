@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-09T03:18:20.429Z",
+  "generatedAt": "2026-05-09T03:32:36.580Z",
   "collections": [
     {
       "name": "users",
@@ -631,6 +631,66 @@
         },
         {
           "name": "metodo_pagamento",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "whatsapp_logs",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.tipo = 'master'",
+        "view": "@request.auth.tipo = 'master'",
+        "create": null,
+        "update": null,
+        "delete": null
+      },
+      "fields": [
+        {
+          "name": "booking_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "agendamentos"
+        },
+        {
+          "name": "phone_number",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "message_text",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["sent", "failed", "skipped"]
+        },
+        {
+          "name": "error_message",
           "type": "text",
           "required": false,
           "system": false
