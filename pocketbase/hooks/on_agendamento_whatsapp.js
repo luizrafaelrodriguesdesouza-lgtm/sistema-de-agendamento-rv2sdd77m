@@ -3,6 +3,11 @@ onRecordAfterCreateSuccess(async (e) => {
   const phone = record.getString('cliente_telefone')
   const bookingId = record.id
 
+  let cleanPhone = phone ? phone.replace(/\D/g, '') : ''
+  if (cleanPhone.length === 10 || cleanPhone.length === 11) {
+    cleanPhone = '55' + cleanPhone
+  }
+
   // Fetch the service name
   let servicoNome = 'Serviço'
   try {
@@ -38,7 +43,7 @@ onRecordAfterCreateSuccess(async (e) => {
       const logsCol = $app.findCollectionByNameOrId('whatsapp_logs')
       const logRec = new Record(logsCol)
       logRec.set('booking_id', bookingId)
-      logRec.set('phone_number', phone || '')
+      logRec.set('phone_number', cleanPhone || phone || '')
       logRec.set('message_text', messageText)
       logRec.set('status', status)
       if (errMsg) logRec.set('error_message', String(errMsg))
@@ -48,8 +53,8 @@ onRecordAfterCreateSuccess(async (e) => {
     }
   }
 
-  // Validate phone number
-  if (!phone || !phone.match(/\d{10,}/)) {
+  // Validate phone number length after prepending 55 if necessary
+  if (cleanPhone.length < 12 || cleanPhone.length > 15) {
     logStatus('skipped', 'Número de telefone inválido ou ausente')
     return e.next()
   }
@@ -61,8 +66,6 @@ onRecordAfterCreateSuccess(async (e) => {
     logStatus('skipped', 'Credenciais do WhatsApp ausentes no ambiente')
     return e.next()
   }
-
-  const cleanPhone = phone.replace(/\D/g, '')
   const url = `https://graph.facebook.com/v18.0/${phoneId}/messages`
   const payload = {
     messaging_product: 'whatsapp',
@@ -113,6 +116,8 @@ onRecordAfterCreateSuccess(async (e) => {
         break // Do not retry on auth failures
       }
 
+      logStatus('failed', `Attempt ${attempt} failed: ${lastError}`)
+
       if (attempt === 1) {
         if (res.statusCode === 429) {
           await sleep(60000) // Wait 60s on Rate Limit
@@ -124,10 +129,8 @@ onRecordAfterCreateSuccess(async (e) => {
     attempt++
   }
 
-  // Handle complete failure
+  // Handle complete failure admin notification
   if (!success && lastError && !lastError.includes('Auth Error')) {
-    logStatus('failed', lastError)
-
     try {
       let adminEmail = 'admin@example.com'
       try {
