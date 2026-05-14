@@ -37,7 +37,7 @@ export function UserForm({
   service: any
   dateTime: { date: string; time: string }
   initialData?: { cliente_nome: string; cliente_email: string; cliente_telefone: string } | null
-  onSuccess: (ref: string) => void
+  onSuccess: (ref: string, isClientLoggedIn?: boolean) => void
   onChange?: (data: any) => void
 }) {
   const { user } = useAuth()
@@ -79,7 +79,8 @@ export function UserForm({
         ...values,
       }
 
-      if (user && user.tipo === 'cliente') {
+      const isClientLoggedIn = user && user.tipo === 'cliente'
+      if (isClientLoggedIn) {
         payload.cliente_id = user.id
       }
 
@@ -87,11 +88,18 @@ export function UserForm({
 
       toast({
         title: 'Agendamento Confirmado!',
-        description: `Sua referência é: ${ref}`,
+        description: isClientLoggedIn
+          ? 'Você pode acompanhar seus agendamentos no painel.'
+          : `Sua referência é: ${ref}`,
       })
-      onSuccess(ref)
+      onSuccess(ref, isClientLoggedIn)
     } catch (err: any) {
-      const msg = err.response?.message || err.message || 'Erro ao agendar'
+      let msg = err.response?.message || err.message || 'Erro ao agendar'
+      if (err.status === 403) {
+        msg = 'Permissão negada. Não foi possível vincular o agendamento à sua conta.'
+      } else if (err.status === 400) {
+        msg = 'Dados inválidos. Verifique os campos e tente novamente.'
+      }
       toast({ title: 'Erro ao agendar', description: msg, variant: 'destructive' })
     } finally {
       setLoading(false)
@@ -126,7 +134,12 @@ export function UserForm({
               <FormItem>
                 <FormLabel>Seu Nome Completo</FormLabel>
                 <FormControl>
-                  <Input placeholder="João da Silva" className="h-12" {...field} />
+                  <Input
+                    placeholder="João da Silva"
+                    className="h-12"
+                    disabled={!!(user && user.tipo === 'cliente')}
+                    {...field}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -139,7 +152,13 @@ export function UserForm({
               <FormItem>
                 <FormLabel>E-mail</FormLabel>
                 <FormControl>
-                  <Input type="email" placeholder="joao@exemplo.com" className="h-12" {...field} />
+                  <Input
+                    type="email"
+                    placeholder="joao@exemplo.com"
+                    className="h-12"
+                    disabled={!!(user && user.tipo === 'cliente')}
+                    {...field}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>

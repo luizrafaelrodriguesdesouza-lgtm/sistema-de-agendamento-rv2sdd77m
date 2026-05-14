@@ -1,5 +1,20 @@
 onRecordCreateRequest((e) => {
   const body = e.requestInfo().body
+
+  const auth = e.auth
+  if (auth && auth.getString('tipo') === 'cliente') {
+    e.record.set('cliente_id', auth.id)
+    if (auth.getString('name')) e.record.set('cliente_nome', auth.getString('name'))
+    if (auth.getString('email')) e.record.set('cliente_email', auth.getString('email'))
+  } else if (
+    !auth ||
+    (auth.getString('tipo') !== 'master' &&
+      auth.getString('tipo') !== 'proprietario' &&
+      auth.getString('tipo') !== 'profissional')
+  ) {
+    e.record.set('cliente_id', '')
+  }
+
   if (!body.profissional_id || !body.servico_id || !body.data) {
     return e.next()
   }

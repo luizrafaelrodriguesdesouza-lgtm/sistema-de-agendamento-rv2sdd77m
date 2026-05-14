@@ -233,9 +233,13 @@ export function BookingFlow({
           service={selectedService}
           dateTime={dateTime}
           initialData={infosCliente}
-          onSuccess={(ref) => {
+          onSuccess={(ref, isClientLoggedIn) => {
             sessionStorage.removeItem(STORAGE_KEY)
-            navigate(`/consulta/${ref}`)
+            if (isClientLoggedIn) {
+              navigate('/meus-agendamentos')
+            } else {
+              navigate(`/consulta/${ref}`)
+            }
           }}
           onChange={(data) => setInfosCliente(data)}
         />
