@@ -24,8 +24,10 @@ export default function OwnerDashboard() {
 
   const [corTema, setCorTema] = useState('')
   const [corSecundaria, setCorSecundaria] = useState('')
+  const [webhookUrl, setWebhookUrl] = useState('')
   const [logoFile, setLogoFile] = useState<File | null>(null)
   const [savingBranding, setSavingBranding] = useState(false)
+  const [savingWebhook, setSavingWebhook] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const loadData = async () => {
@@ -44,6 +46,7 @@ export default function OwnerDashboard() {
       setOwnerData(owner)
       setCorTema(owner.cor_tema || '#009999')
       setCorSecundaria(owner.cor_secundaria || '#f1f5f9')
+      setWebhookUrl(owner.webhook_url || '')
 
       const profs = await pb.collection('users').getFullList({
         filter: `proprietario_id = '${targetId}'`,
@@ -95,6 +98,20 @@ export default function OwnerDashboard() {
       receita: revenue,
     }
   })
+
+  const handleSaveWebhook = async () => {
+    if (!ownerData) return
+    setSavingWebhook(true)
+    try {
+      await pb.collection('users').update(ownerData.id, { webhook_url: webhookUrl })
+      toast({ title: 'Webhook configurado com sucesso!' })
+      loadData()
+    } catch (e: any) {
+      toast({ title: 'Erro ao configurar webhook', description: e.message, variant: 'destructive' })
+    } finally {
+      setSavingWebhook(false)
+    }
+  }
 
   const handleSaveBranding = async () => {
     if (!ownerData) return
@@ -371,6 +388,39 @@ export default function OwnerDashboard() {
                   <Button onClick={handleSaveBranding} disabled={savingBranding}>
                     {savingBranding ? 'Salvando...' : 'Salvar Identidade Visual'}
                   </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="shadow-sm border-slate-200 lg:col-span-2">
+              <CardHeader>
+                <CardTitle>Integrações e Automações</CardTitle>
+                <CardDescription>
+                  Configure um webhook para enviar dados de novos agendamentos para ferramentas
+                  externas (ex: Botconversa, Make, Zapier).
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="webhook_url">URL do Webhook</Label>
+                    <Input
+                      id="webhook_url"
+                      type="url"
+                      placeholder="https://sua-url-de-webhook.com/..."
+                      value={webhookUrl}
+                      onChange={(e) => setWebhookUrl(e.target.value)}
+                    />
+                    <p className="text-xs text-slate-500">
+                      Os dados do agendamento serão enviados via POST (JSON) para esta URL sempre
+                      que um novo agendamento for criado.
+                    </p>
+                  </div>
+                  <div className="flex justify-end">
+                    <Button onClick={handleSaveWebhook} disabled={savingWebhook}>
+                      {savingWebhook ? 'Salvando...' : 'Salvar Webhook'}
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>

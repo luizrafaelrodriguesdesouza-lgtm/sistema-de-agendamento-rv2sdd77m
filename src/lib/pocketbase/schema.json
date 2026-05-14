@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-14T23:44:49.714Z",
+  "generatedAt": "2026-05-14T23:54:22.204Z",
   "collections": [
     {
       "name": "users",
@@ -128,6 +128,12 @@
         {
           "name": "cor_secundaria",
           "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "webhook_url",
+          "type": "url",
           "required": false,
           "system": false
         }
