@@ -11,7 +11,7 @@ import pb from '@/lib/pocketbase/client'
 import { useRealtime } from '@/hooks/use-realtime'
 import useMasterStore from '@/stores/useMasterStore'
 import { useToast } from '@/hooks/use-toast'
-import { Copy, Upload, Trash2 } from 'lucide-react'
+import { Copy, Upload, Trash2, Loader2 } from 'lucide-react'
 
 export default function OwnerDashboard() {
   const { user } = useAuth()
@@ -28,6 +28,7 @@ export default function OwnerDashboard() {
   const [logoFile, setLogoFile] = useState<File | null>(null)
   const [savingBranding, setSavingBranding] = useState(false)
   const [savingWebhook, setSavingWebhook] = useState(false)
+  const [testingWebhook, setTestingWebhook] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const loadData = async () => {
@@ -98,6 +99,30 @@ export default function OwnerDashboard() {
       receita: revenue,
     }
   })
+
+  const handleTestWebhook = async () => {
+    if (!webhookUrl) return
+    setTestingWebhook(true)
+    try {
+      const res = await pb.send('/backend/v1/webhooks/test-owner', {
+        method: 'POST',
+        body: JSON.stringify({ webhook_url: webhookUrl }),
+        headers: { 'Content-Type': 'application/json' },
+      })
+      toast({
+        title: 'Webhook disparado com sucesso!',
+        description: `Status: ${res.status} OK`,
+      })
+    } catch (e: any) {
+      toast({
+        title: 'Erro ao disparar webhook',
+        description: e.response?.message || e.message || 'Erro desconhecido',
+        variant: 'destructive',
+      })
+    } finally {
+      setTestingWebhook(false)
+    }
+  }
 
   const handleSaveWebhook = async () => {
     if (!ownerData) return
@@ -416,7 +441,20 @@ export default function OwnerDashboard() {
                       que um novo agendamento for criado.
                     </p>
                   </div>
-                  <div className="flex justify-end">
+                  <div className="flex justify-end gap-3">
+                    <Button
+                      variant="outline"
+                      onClick={handleTestWebhook}
+                      disabled={testingWebhook || !webhookUrl || !webhookUrl.startsWith('http')}
+                    >
+                      {testingWebhook ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Testando...
+                        </>
+                      ) : (
+                        'Testar Webhook'
+                      )}
+                    </Button>
                     <Button onClick={handleSaveWebhook} disabled={savingWebhook}>
                       {savingWebhook ? 'Salvando...' : 'Salvar Webhook'}
                     </Button>
