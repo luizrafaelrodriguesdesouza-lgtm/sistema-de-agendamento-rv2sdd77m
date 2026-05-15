@@ -21,6 +21,8 @@ routerAdd(
       return e.badRequestError('URL do webhook não fornecida.')
     }
 
+    webhookUrl = webhookUrl.trim().replace(/[\n\r\t]/g, '')
+
     try {
       new URL(webhookUrl)
     } catch (_) {
@@ -29,11 +31,17 @@ routerAdd(
 
     const payload = {
       event: 'test_connection',
-      cliente_nome: 'João Silva (Teste)',
-      cliente_telefone: '11999999999',
-      servico: 'Corte de Cabelo',
-      data_agendamento: '2024-12-25T14:00:00Z',
-      status: 'pendente',
+      data: {
+        cliente_nome: 'João Silva (Teste)',
+        cliente_email: 'joao.silva@teste.com',
+        cliente_telefone: '11999999999',
+        profissional: 'Maria Cabeleireira',
+        servico: 'Corte de Cabelo',
+        valor: 50.0,
+        data: '2024-12-25',
+        hora: '14:00',
+        referencia: 'REF-TEST-123',
+      },
     }
 
     try {
@@ -51,7 +59,7 @@ routerAdd(
       const log = new Record(logsCol)
       log.set('event', 'test_webhook')
       log.set('status', res.statusCode)
-      log.set('payload', payload)
+      log.set('payload', Object.assign({}, payload, { request_url: webhookUrl }))
 
       let resBodyStr = ''
       if (res.json) {
@@ -82,12 +90,12 @@ routerAdd(
       const log = new Record(logsCol)
       log.set('event', 'test_webhook')
       log.set('status', 0)
-      log.set('payload', payload)
+      log.set('payload', Object.assign({}, payload, { request_url: webhookUrl }))
       const errorLog = (err.message || 'Falha na requisição').substring(0, 500)
       log.set('response', errorLog)
       $app.save(log)
 
-      return e.json(400, { success: false, status: 0, error: errorLog })
+      return e.json(400, { success: false, status: 0, error: errorLog, request_url: webhookUrl })
     }
   },
   $apis.requireAuth(),

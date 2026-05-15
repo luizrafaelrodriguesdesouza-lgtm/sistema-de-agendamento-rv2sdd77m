@@ -18,9 +18,11 @@ onRecordAfterUpdateSuccess((e) => {
 
   if (records.length === 0) return e.next()
 
-  const webhookUrl = records[0].getString('webhook_url')
+  let webhookUrl = records[0].getString('webhook_url')
   const webhookSecret = records[0].getString('webhook_secret')
   if (!webhookUrl) return e.next()
+
+  webhookUrl = webhookUrl.trim().replace(/[\n\r\t]/g, '')
 
   const payload = {
     event: 'booking.confirmed',
@@ -68,7 +70,7 @@ onRecordAfterUpdateSuccess((e) => {
   const log = new Record(logsCol)
   log.set('event', 'booking.confirmed')
   log.set('status', lastStatus)
-  log.set('payload', payload)
+  log.set('payload', Object.assign({}, payload, { request_url: webhookUrl }))
   log.set('response', lastResponse)
   $app.save(log)
 

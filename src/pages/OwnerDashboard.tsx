@@ -101,9 +101,10 @@ export default function OwnerDashboard() {
   })
 
   const handleTestWebhook = async () => {
-    if (!webhookUrl) return
+    const sanitizedUrl = webhookUrl.trim()
+    if (!sanitizedUrl) return
     try {
-      new URL(webhookUrl)
+      new URL(sanitizedUrl)
     } catch (_) {
       toast({ title: 'URL de Webhook inválida', variant: 'destructive' })
       return
@@ -113,7 +114,7 @@ export default function OwnerDashboard() {
     try {
       const res = await pb.send('/backend/v1/owner-webhook-test', {
         method: 'POST',
-        body: JSON.stringify({ webhook_url: webhookUrl }),
+        body: JSON.stringify({ webhook_url: sanitizedUrl }),
         headers: { 'Content-Type': 'application/json' },
       })
       toast({
@@ -124,8 +125,8 @@ export default function OwnerDashboard() {
       const statusCode = e.response?.status || 0
       const errorMsg = e.response?.error || e.message || 'Erro desconhecido'
       toast({
-        title: 'Erro',
-        description: `Falha ao disparar webhook (Status: ${statusCode}) - ${errorMsg}`,
+        title: 'Erro no Webhook',
+        description: `Status: ${statusCode} - ${errorMsg}`,
         variant: 'destructive',
       })
     } finally {
@@ -135,9 +136,10 @@ export default function OwnerDashboard() {
 
   const handleSaveWebhook = async () => {
     if (!ownerData) return
-    if (webhookUrl) {
+    const sanitizedUrl = webhookUrl.trim()
+    if (sanitizedUrl) {
       try {
-        new URL(webhookUrl)
+        new URL(sanitizedUrl)
       } catch (_) {
         toast({ title: 'URL de Webhook inválida', variant: 'destructive' })
         return
@@ -145,7 +147,8 @@ export default function OwnerDashboard() {
     }
     setSavingWebhook(true)
     try {
-      await pb.collection('users').update(ownerData.id, { webhook_url: webhookUrl })
+      await pb.collection('users').update(ownerData.id, { webhook_url: sanitizedUrl })
+      setWebhookUrl(sanitizedUrl)
       toast({ title: 'Webhook configurado com sucesso!' })
       loadData()
     } catch (e: any) {

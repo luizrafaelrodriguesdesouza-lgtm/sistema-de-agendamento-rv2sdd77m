@@ -1,5 +1,11 @@
-onRecordAfterCreateSuccess((e) => {
+onRecordAfterUpdateSuccess((e) => {
   const agendamento = e.record
+  const original = agendamento.original()
+
+  // Only trigger if status changed
+  if (agendamento.getString('status') === original.getString('status')) {
+    return e.next()
+  }
 
   try {
     const profissionalId = agendamento.getString('profissional_id')
@@ -47,7 +53,7 @@ onRecordAfterCreateSuccess((e) => {
     }
 
     const payload = {
-      event: 'appointment_created',
+      event: `appointment_status_changed_to_${agendamento.getString('status')}`,
       data: {
         cliente_nome: cliente_nome || '',
         cliente_email: agendamento.getString('cliente_email') || '',
@@ -58,6 +64,7 @@ onRecordAfterCreateSuccess((e) => {
         hora: horaFormatada,
         valor: preco,
         referencia: agendamento.getString('referencia') || '',
+        status: agendamento.getString('status'),
       },
     }
 
@@ -86,16 +93,18 @@ onRecordAfterCreateSuccess((e) => {
     try {
       const logCol = $app.findCollectionByNameOrId('webhook_logs')
       const logRecord = new Record(logCol)
-      logRecord.set('event', 'appointment_created')
+      logRecord.set('event', 'appointment_status_changed')
       logRecord.set('status', statusCode)
       logRecord.set('payload', Object.assign({}, payload, { request_url: webhookUrl }))
       logRecord.set('response', responseText)
       $app.save(logRecord)
     } catch (err) {
-      $app.logger().error('Erro ao salvar log do webhook do proprietario', 'error', err.message)
+      $app
+        .logger()
+        .error('Erro ao salvar log do webhook do proprietario (update)', 'error', err.message)
     }
   } catch (err) {
-    $app.logger().error('Erro na execucao do owner webhook', 'error', err.message)
+    $app.logger().error('Erro na execucao do owner webhook (update)', 'error', err.message)
   }
 
   return e.next()
