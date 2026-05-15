@@ -1,6 +1,6 @@
 routerAdd(
   'POST',
-  '/backend/v1/webhooks/test-owner',
+  '/backend/v1/owner-webhook-test',
   (e) => {
     const authRecord = e.auth
     if (
@@ -10,8 +10,12 @@ routerAdd(
       return e.forbiddenError('Acesso negado.')
     }
 
-    const body = e.requestInfo().body
-    const webhookUrl = body.webhook_url
+    const body = e.requestInfo().body || {}
+    let webhookUrl = body.webhook_url
+
+    if (!webhookUrl) {
+      webhookUrl = authRecord.getString('webhook_url')
+    }
 
     if (!webhookUrl) {
       return e.badRequestError('URL do webhook não fornecida.')
@@ -24,19 +28,14 @@ routerAdd(
     }
 
     const payload = {
-      event: 'appointment_created',
-      data: {
-        cliente_nome: 'João Silva (Teste)',
-        cliente_telefone: '+5511999999999',
-        servico: 'Serviço de Teste',
-        profissional: 'Profissional Teste',
-        data: '2024-01-01',
-        hora: '10:00',
-        valor: 50.0,
-      },
+      event: 'test_connection',
+      cliente_nome: 'João Silva (Teste)',
+      cliente_telefone: '11999999999',
+      servico: 'Corte de Cabelo',
+      data_agendamento: '2024-12-25T14:00:00Z',
+      status: 'pendente',
     }
 
-    const start = Date.now()
     try {
       const res = $http.send({
         url: webhookUrl,
@@ -47,35 +46,48 @@ routerAdd(
         body: JSON.stringify(payload),
         timeout: 10,
       })
-      const timeMs = Date.now() - start
 
       const logsCol = $app.findCollectionByNameOrId('webhook_logs')
       const log = new Record(logsCol)
-      log.set('event', 'appointment_created_test')
+      log.set('event', 'test_webhook')
       log.set('status', res.statusCode)
       log.set('payload', payload)
 
-      const responseObj = { timeMs, body: res.json || { raw: 'Non-JSON response or empty' } }
-      log.set('response', JSON.stringify(responseObj))
+      let resBodyStr = ''
+      if (res.json) {
+        resBodyStr = JSON.stringify(res.json)
+      } else if (res.body) {
+        try {
+          resBodyStr = new TextDecoder().decode(res.body)
+        } catch (err) {
+          resBodyStr = 'Non-text response'
+        }
+      }
+
+      const responseLog = resBodyStr.substring(0, 500)
+      log.set('response', responseLog)
       $app.save(log)
 
       if (res.statusCode >= 200 && res.statusCode < 300) {
-        return e.json(200, { success: true, status: res.statusCode, timeMs, response: responseObj })
+        return e.json(200, { success: true, status: res.statusCode, response: responseLog })
       } else {
-        return e.badRequestError(`O servidor retornou erro HTTP ${res.statusCode} em ${timeMs}ms`)
+        return e.json(400, {
+          success: false,
+          status: res.statusCode,
+          error: responseLog || `HTTP ${res.statusCode}`,
+        })
       }
     } catch (err) {
-      const timeMs = Date.now() - start
       const logsCol = $app.findCollectionByNameOrId('webhook_logs')
       const log = new Record(logsCol)
-      log.set('event', 'appointment_created_test')
+      log.set('event', 'test_webhook')
       log.set('status', 0)
       log.set('payload', payload)
-      const responseObj = { timeMs, error: err.message || 'Falha na requisição' }
-      log.set('response', JSON.stringify(responseObj))
+      const errorLog = (err.message || 'Falha na requisição').substring(0, 500)
+      log.set('response', errorLog)
       $app.save(log)
 
-      return e.badRequestError(`Erro de conexão ou timeout: ${err.message} (${timeMs}ms)`)
+      return e.json(400, { success: false, status: 0, error: errorLog })
     }
   },
   $apis.requireAuth(),

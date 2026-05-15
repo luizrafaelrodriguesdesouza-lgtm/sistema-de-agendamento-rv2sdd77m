@@ -111,20 +111,21 @@ export default function OwnerDashboard() {
 
     setTestingWebhook(true)
     try {
-      const res = await pb.send('/backend/v1/webhooks/test-owner', {
+      const res = await pb.send('/backend/v1/owner-webhook-test', {
         method: 'POST',
         body: JSON.stringify({ webhook_url: webhookUrl }),
         headers: { 'Content-Type': 'application/json' },
       })
       toast({
-        title: 'Webhook disparado com sucesso!',
-        description: `Status: ${res.status} OK`,
+        title: 'Sucesso',
+        description: `Webhook disparado com sucesso (Status: ${res.status})`,
       })
     } catch (e: any) {
-      const desc = e.response?.message || e.message || 'Erro desconhecido'
+      const statusCode = e.response?.status || 0
+      const errorMsg = e.response?.error || e.message || 'Erro desconhecido'
       toast({
-        title: 'Erro ao disparar webhook',
-        description: desc,
+        title: 'Erro',
+        description: `Falha ao disparar webhook (Status: ${statusCode}) - ${errorMsg}`,
         variant: 'destructive',
       })
     } finally {
