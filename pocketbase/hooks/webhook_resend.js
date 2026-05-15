@@ -31,13 +31,24 @@ routerAdd(
     const webhookSecret = records[0].getString('webhook_secret')
     if (!webhookUrl) return e.badRequestError('URL do webhook não configurada.')
 
+    let rawPhone = agendamento.getString('cliente_telefone') || ''
+    let numbersOnly = rawPhone.replace(/\D/g, '')
+    let formattedPhone = rawPhone
+    if (numbersOnly) {
+      if (numbersOnly.startsWith('55')) {
+        formattedPhone = '+' + numbersOnly
+      } else {
+        formattedPhone = '+55' + numbersOnly
+      }
+    }
+
     const payload = {
       event: 'booking.confirmed',
       booking_id: agendamento.id,
       cliente_dados: {
         nome: agendamento.getString('cliente_nome'),
         email: agendamento.getString('cliente_email'),
-        telefone: agendamento.getString('cliente_telefone'),
+        telefone: formattedPhone,
       },
       servico: agendamento.getString('servico_id'),
       data_hora_utc: agendamento.getString('data'),
@@ -77,7 +88,12 @@ routerAdd(
     const log = new Record(logsCol)
     log.set('event', 'booking.resend')
     log.set('status', lastStatus)
-    log.set('payload', payload)
+
+    const payloadToLog = Object.assign({}, payload)
+    if (!numbersOnly && rawPhone) {
+      payloadToLog._warning = 'Invalid phone number format'
+    }
+    log.set('payload', payloadToLog)
     log.set('response', lastResponse)
     $app.save(log)
 

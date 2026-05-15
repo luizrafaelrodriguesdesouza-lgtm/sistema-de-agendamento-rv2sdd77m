@@ -27,7 +27,17 @@ onRecordAfterCreateSuccess((e) => {
     }
 
     let cliente_nome = agendamento.getString('cliente_nome')
-    let cliente_telefone = agendamento.getString('cliente_telefone')
+    let rawPhone = agendamento.getString('cliente_telefone') || ''
+    let numbersOnly = rawPhone.replace(/\D/g, '')
+    let formattedPhone = rawPhone
+    if (numbersOnly) {
+      if (numbersOnly.startsWith('55')) {
+        formattedPhone = '+' + numbersOnly
+      } else {
+        formattedPhone = '+55' + numbersOnly
+      }
+    }
+    let cliente_telefone = formattedPhone
 
     const clienteId = agendamento.getString('cliente_id')
     if (clienteId && !cliente_nome) {
@@ -88,7 +98,12 @@ onRecordAfterCreateSuccess((e) => {
       const logRecord = new Record(logCol)
       logRecord.set('event', 'appointment_created')
       logRecord.set('status', statusCode)
-      logRecord.set('payload', Object.assign({}, payload, { request_url: webhookUrl }))
+
+      const payloadToLog = Object.assign({}, payload, { request_url: webhookUrl })
+      if (!numbersOnly && rawPhone) {
+        payloadToLog._warning = 'Invalid phone number format'
+      }
+      logRecord.set('payload', payloadToLog)
       logRecord.set('response', responseText)
       $app.save(logRecord)
     } catch (err) {

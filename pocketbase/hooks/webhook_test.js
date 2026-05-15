@@ -31,7 +31,7 @@ routerAdd(
         id: 'test_123',
         cliente_nome: 'Cliente Teste',
         cliente_email: 'teste@exemplo.com',
-        cliente_telefone: '11999999999',
+        cliente_telefone: '+5511999999999',
         data: new Date().toISOString(),
         status: 'pendente',
         referencia: 'REF-TEST-123',

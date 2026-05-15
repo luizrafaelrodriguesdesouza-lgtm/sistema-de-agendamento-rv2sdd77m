@@ -34,7 +34,7 @@ routerAdd(
       data: {
         cliente_nome: 'João Silva (Teste)',
         cliente_email: 'joao.silva@teste.com',
-        cliente_telefone: '11999999999',
+        cliente_telefone: '+5511999999999',
         profissional: 'Maria Cabeleireira',
         servico: 'Corte de Cabelo',
         valor: 50.0,

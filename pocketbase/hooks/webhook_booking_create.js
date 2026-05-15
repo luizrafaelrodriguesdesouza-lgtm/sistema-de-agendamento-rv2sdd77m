@@ -19,13 +19,24 @@ onRecordAfterCreateSuccess((e) => {
 
   webhookUrl = webhookUrl.trim().replace(/[\n\r\t]/g, '')
 
+  let rawPhone = agendamento.getString('cliente_telefone') || ''
+  let numbersOnly = rawPhone.replace(/\D/g, '')
+  let formattedPhone = rawPhone
+  if (numbersOnly) {
+    if (numbersOnly.startsWith('55')) {
+      formattedPhone = '+' + numbersOnly
+    } else {
+      formattedPhone = '+55' + numbersOnly
+    }
+  }
+
   const payload = {
     event: 'booking.confirmed',
     booking_id: agendamento.id,
     cliente_dados: {
       nome: agendamento.getString('cliente_nome'),
       email: agendamento.getString('cliente_email'),
-      telefone: agendamento.getString('cliente_telefone'),
+      telefone: formattedPhone,
     },
     servico: agendamento.getString('servico_id'),
     data_hora_utc: agendamento.getString('data'),
@@ -65,7 +76,12 @@ onRecordAfterCreateSuccess((e) => {
   const log = new Record(logsCol)
   log.set('event', 'booking.confirmed')
   log.set('status', lastStatus)
-  log.set('payload', Object.assign({}, payload, { request_url: webhookUrl }))
+
+  const payloadToLog = Object.assign({}, payload, { request_url: webhookUrl })
+  if (!numbersOnly && rawPhone) {
+    payloadToLog._warning = 'Invalid phone number format'
+  }
+  log.set('payload', payloadToLog)
   log.set('response', lastResponse)
   $app.save(log)
 
