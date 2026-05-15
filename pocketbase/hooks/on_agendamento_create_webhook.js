@@ -20,12 +20,11 @@ onRecordAfterCreateSuccess((e) => {
       try {
         const servico = $app.findRecordById('servicos', servicoId)
         servico_nome = servico.getString('nome')
-        preco = servico.get('preco')
+        preco = servico.get('preco') || 0
       } catch (err) {}
     }
 
     let cliente_nome = agendamento.getString('cliente_nome')
-    let cliente_email = agendamento.getString('cliente_email')
     let cliente_telefone = agendamento.getString('cliente_telefone')
 
     const clienteId = agendamento.getString('cliente_id')
@@ -33,20 +32,29 @@ onRecordAfterCreateSuccess((e) => {
       try {
         const cliente = $app.findRecordById('users', clienteId)
         cliente_nome = cliente.getString('name') || cliente_nome
-        cliente_email = cliente.getString('email') || cliente_email
       } catch (err) {}
     }
 
+    let dataFormatada = ''
+    let horaFormatada = ''
+    const rawData = agendamento.getString('data')
+    if (rawData) {
+      const parts = rawData.split(' ')
+      if (parts.length > 0) dataFormatada = parts[0]
+      if (parts.length > 1) horaFormatada = parts[1].substring(0, 5)
+    }
+
     const payload = {
-      agendamento_id: agendamento.id,
-      cliente_nome: cliente_nome,
-      cliente_email: cliente_email,
-      cliente_telefone: cliente_telefone,
-      servico_nome: servico_nome,
-      data_agendamento: agendamento.getString('data'),
-      profissional_nome: profissional.getString('name'),
-      valor: preco,
-      status: agendamento.getString('status'),
+      event: 'appointment_created',
+      data: {
+        cliente_nome: cliente_nome || '',
+        cliente_telefone: cliente_telefone || '',
+        servico: servico_nome || '',
+        profissional: profissional.getString('name') || '',
+        data: dataFormatada,
+        hora: horaFormatada,
+        valor: preco,
+      },
     }
 
     let statusCode = 0
@@ -64,7 +72,7 @@ onRecordAfterCreateSuccess((e) => {
       if (res.json) {
         responseText = JSON.stringify(res.json)
       } else {
-        responseText = `Status: ${res.statusCode}`
+        responseText = '{"raw": "Non-JSON response or empty"}'
       }
     } catch (httpErr) {
       statusCode = 0
@@ -74,7 +82,7 @@ onRecordAfterCreateSuccess((e) => {
     try {
       const logCol = $app.findCollectionByNameOrId('webhook_logs')
       const logRecord = new Record(logCol)
-      logRecord.set('event', 'owner_webhook_booking_create')
+      logRecord.set('event', 'appointment_created')
       logRecord.set('status', statusCode)
       logRecord.set('payload', payload)
       logRecord.set('response', responseText)

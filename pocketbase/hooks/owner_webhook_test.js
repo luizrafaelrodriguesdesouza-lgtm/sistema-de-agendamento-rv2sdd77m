@@ -17,15 +17,22 @@ routerAdd(
       return e.badRequestError('URL do webhook não fornecida.')
     }
 
+    try {
+      new URL(webhookUrl)
+    } catch (_) {
+      return e.badRequestError('URL de Webhook inválida.')
+    }
+
     const payload = {
-      event: 'booking.test',
+      event: 'appointment_created',
       data: {
         cliente_nome: 'João Silva (Teste)',
         cliente_telefone: '+5511999999999',
         servico: 'Serviço de Teste',
-        data: '2024-01-01T10:00:00Z',
-        status: 'pendente',
-        referencia: 'TEST-123',
+        profissional: 'Profissional Teste',
+        data: '2024-01-01',
+        hora: '10:00',
+        valor: 50.0,
       },
     }
 
@@ -44,10 +51,11 @@ routerAdd(
 
       const logsCol = $app.findCollectionByNameOrId('webhook_logs')
       const log = new Record(logsCol)
-      log.set('event', 'booking.test')
+      log.set('event', 'appointment_created_test')
       log.set('status', res.statusCode)
       log.set('payload', payload)
-      const responseObj = { timeMs, body: res.json || { raw: 'OK' } }
+
+      const responseObj = { timeMs, body: res.json || { raw: 'Non-JSON response or empty' } }
       log.set('response', JSON.stringify(responseObj))
       $app.save(log)
 
@@ -60,7 +68,7 @@ routerAdd(
       const timeMs = Date.now() - start
       const logsCol = $app.findCollectionByNameOrId('webhook_logs')
       const log = new Record(logsCol)
-      log.set('event', 'booking.test')
+      log.set('event', 'appointment_created_test')
       log.set('status', 0)
       log.set('payload', payload)
       const responseObj = { timeMs, error: err.message || 'Falha na requisição' }

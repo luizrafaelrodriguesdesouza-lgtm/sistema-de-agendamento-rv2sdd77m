@@ -102,6 +102,13 @@ export default function OwnerDashboard() {
 
   const handleTestWebhook = async () => {
     if (!webhookUrl) return
+    try {
+      new URL(webhookUrl)
+    } catch (_) {
+      toast({ title: 'URL de Webhook inválida', variant: 'destructive' })
+      return
+    }
+
     setTestingWebhook(true)
     try {
       const res = await pb.send('/backend/v1/webhooks/test-owner', {
@@ -114,9 +121,10 @@ export default function OwnerDashboard() {
         description: `Status: ${res.status} OK`,
       })
     } catch (e: any) {
+      const desc = e.response?.message || e.message || 'Erro desconhecido'
       toast({
         title: 'Erro ao disparar webhook',
-        description: e.response?.message || e.message || 'Erro desconhecido',
+        description: desc,
         variant: 'destructive',
       })
     } finally {
@@ -126,6 +134,14 @@ export default function OwnerDashboard() {
 
   const handleSaveWebhook = async () => {
     if (!ownerData) return
+    if (webhookUrl) {
+      try {
+        new URL(webhookUrl)
+      } catch (_) {
+        toast({ title: 'URL de Webhook inválida', variant: 'destructive' })
+        return
+      }
+    }
     setSavingWebhook(true)
     try {
       await pb.collection('users').update(ownerData.id, { webhook_url: webhookUrl })
