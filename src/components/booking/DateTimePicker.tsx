@@ -52,86 +52,40 @@ export function DateTimePicker({
   const timeValue = form.watch('time')
 
   const fetchTimes = useCallback(async () => {
-    if (!date || !professionalId) return
+    if (!date || !professionalId || !serviceId) return
     setLoading(true)
     try {
-      let bufferMinutes = 15
-      try {
-        const settings = await pb.collection('settings').getList(1, 1)
-        if (settings.items.length > 0) {
-          bufferMinutes = settings.items[0].buffer_duration ?? 15
-        }
-      } catch {
-        /* intentionally ignored */
-      }
-
-      const dayOfWeek = date.getDay()
-      const schedule = await pb.collection('horarios_disponiveis').getFullList({
-        filter: `profissional_id = '${professionalId}' && dia_semana = ${dayOfWeek}`,
-      })
-
       const startOfDay = new Date(date)
       startOfDay.setHours(0, 0, 0, 0)
-      const searchStart = new Date(startOfDay.getTime() - 24 * 60 * 60000)
-      const searchEnd = new Date(startOfDay.getTime() + 48 * 60 * 60000)
+      const dayOfWeek = startOfDay.getDay()
 
-      const apps = await pb.collection('agendamentos').getFullList({
-        filter: `profissional_id = '${professionalId}' && data >= '${searchStart.toISOString().replace('T', ' ')}' && data <= '${searchEnd.toISOString().replace('T', ' ')}' && status != 'cancelado'`,
-        expand: 'servico_id',
+      const params = new URLSearchParams({
+        profissional_id: professionalId,
+        servico_id: serviceId,
+        date: startOfDay.toISOString(),
+        day_of_week: dayOfWeek.toString(),
       })
 
-      const busyBlocks = apps.map((a) => {
-        const start = new Date(a.data)
-        const dur = a.expand?.servico_id?.duracao || 30
-        return { start, dur }
+      const res = await pb.send(`/backend/v1/availability?${params.toString()}`, {
+        method: 'GET',
       })
 
-      let times: string[] = []
-      if (schedule.length > 0) {
-        for (const s of schedule) {
-          const [startH, startM] = s.hora_inicio.split(':').map(Number)
-          const [endH, endM] = s.hora_fim.split(':').map(Number)
+      const now = new Date()
+      const validTimes = (res.available_times || []).filter((t: string) => {
+        const [h, m] = t.split(':').map(Number)
+        const slotTime = new Date(startOfDay)
+        slotTime.setHours(h, m, 0, 0)
+        return slotTime > now
+      })
 
-          let currentSlot = new Date(date)
-          currentSlot.setHours(startH, startM, 0, 0)
-
-          const endOfShift = new Date(date)
-          endOfShift.setHours(endH, endM, 0, 0)
-
-          while (currentSlot.getTime() + serviceDuration * 60000 <= endOfShift.getTime()) {
-            const slotStart = new Date(currentSlot)
-            const slotEnd = new Date(currentSlot.getTime() + serviceDuration * 60000)
-
-            const reqStart = slotStart.getTime() - bufferMinutes * 60000
-            const reqEnd = slotEnd.getTime() + bufferMinutes * 60000
-
-            const isBusy = busyBlocks.some((b) => {
-              const bStart = b.start.getTime() - bufferMinutes * 60000
-              const bEnd = b.start.getTime() + b.dur * 60000 + bufferMinutes * 60000
-              return bStart < reqEnd && bEnd > reqStart
-            })
-
-            const isPast = slotStart < new Date()
-
-            if (!isBusy && !isPast) {
-              times.push(
-                `${slotStart.getHours().toString().padStart(2, '0')}:${slotStart.getMinutes().toString().padStart(2, '0')}`,
-              )
-            }
-
-            currentSlot = new Date(currentSlot.getTime() + 15 * 60000)
-          }
-        }
-      }
-
-      const uniqueTimes = [...new Set(times)].sort()
-      setAvailableTimes(uniqueTimes)
+      setAvailableTimes(validTimes)
     } catch (err) {
       console.error(err)
+      setAvailableTimes([])
     } finally {
       setLoading(false)
     }
-  }, [date, professionalId, serviceDuration])
+  }, [date, professionalId, serviceId])
 
   useEffect(() => {
     fetchTimes()
