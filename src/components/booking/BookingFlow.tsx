@@ -75,7 +75,7 @@ export function BookingFlow({
       const fetchProfs = async () => {
         setLoadingProfs(true)
         try {
-          let filterStr = `((tipo = 'profissional' && proprietario_id = '${proprietarioId}') || id = '${proprietarioId}') && status_aprovacao = 'aprovado'`
+          let filterStr = `((tipo = 'profissional' && proprietario_id = '${proprietarioId}') || id = '${proprietarioId}') && status_aprovacao = 'aprovado' && deleted_at = ''`
           if (selectedService.profissional_id) {
             filterStr = `id = '${selectedService.profissional_id}'`
           }

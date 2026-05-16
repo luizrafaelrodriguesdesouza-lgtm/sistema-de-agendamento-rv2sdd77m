@@ -30,11 +30,20 @@ onRecordCreateRequest((e) => {
     }
   } catch (_) {}
 
+  const leadTimeMs = Math.max(30 * 60000, bufferMinutes * 60000)
+
+  if ((!auth || auth.getString('tipo') === 'cliente') && reqTime <= Date.now() + leadTimeMs) {
+    return e.json(400, {
+      status: 'error',
+      message: 'O horário selecionado é no passado ou muito próximo. Escolha outro horário.',
+    })
+  }
+
   try {
     const servico = $app.findRecordById('servicos', body.servico_id)
     const duracao = servico.getInt('duracao') || 30
 
-    const requestedStart = reqTime - bufferMinutes * 60000
+    const requestedStart = reqTime
     const requestedEnd = reqTime + duracao * 60000 + bufferMinutes * 60000
 
     const searchStart = new Date(requestedStart - 24 * 60 * 60000)
@@ -65,7 +74,7 @@ onRecordCreateRequest((e) => {
         } catch (_) {}
       }
 
-      const existingStart = appTime - bufferMinutes * 60000
+      const existingStart = appTime
       const existingEnd = appTime + appDuracao * 60000 + bufferMinutes * 60000
 
       if (existingStart < requestedEnd && existingEnd > requestedStart) {
@@ -80,7 +89,7 @@ onRecordCreateRequest((e) => {
     if (conflicts.length > 0) {
       $app
         .logger()
-        .error('Conflict detected', 'payload', body, 'reason', 'Time overlap with buffers')
+        .info('Conflict detected', 'payload', body, 'reason', 'Time overlap with buffers')
       return e.json(409, {
         status: 'conflict',
         message: 'Horário indisponível, escolha outro',

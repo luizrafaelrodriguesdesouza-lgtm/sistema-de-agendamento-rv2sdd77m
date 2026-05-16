@@ -70,15 +70,7 @@ export function DateTimePicker({
         method: 'GET',
       })
 
-      const now = new Date()
-      const validTimes = (res.available_times || []).filter((t: string) => {
-        const [h, m] = t.split(':').map(Number)
-        const slotTime = new Date(startOfDay)
-        slotTime.setHours(h, m, 0, 0)
-        return slotTime > now
-      })
-
-      setAvailableTimes(validTimes)
+      setAvailableTimes(res.available_times || [])
     } catch (err) {
       console.error(err)
       setAvailableTimes([])

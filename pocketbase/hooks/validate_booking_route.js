@@ -22,6 +22,12 @@ routerAdd('POST', '/backend/v1/agendamentos/validate', (e) => {
     }
   } catch (_) {}
 
+  const leadTimeMs = Math.max(30 * 60000, bufferMinutes * 60000)
+
+  if (reqStart.getTime() <= Date.now() + leadTimeMs) {
+    return e.json(409, { message: 'O horário selecionado é no passado ou muito próximo.' })
+  }
+
   const reqEnd = new Date(reqStart.getTime() + duracao * 60000)
 
   const startStr = new Date(reqStart.getTime() - 24 * 60000).toISOString().replace('T', ' ')
@@ -47,15 +53,12 @@ routerAdd('POST', '/backend/v1/agendamentos/validate', (e) => {
       }
     } catch (_) {}
 
-    const aEnd = new Date(aStart.getTime() + aDur * 60000)
+    const aEnd = new Date(aStart.getTime() + aDur * 60000 + bufferMinutes * 60000)
 
-    const bStart = new Date(aStart.getTime() - bufferMinutes * 60000)
-    const bEnd = new Date(aEnd.getTime() + bufferMinutes * 60000)
+    const rbStart = reqStart
+    const rbEnd = new Date(reqStart.getTime() + duracao * 60000 + bufferMinutes * 60000)
 
-    const rbStart = new Date(reqStart.getTime() - bufferMinutes * 60000)
-    const rbEnd = new Date(reqEnd.getTime() + bufferMinutes * 60000)
-
-    if (bStart < rbEnd && bEnd > rbStart) {
+    if (aStart < rbEnd && aEnd > rbStart) {
       conflicts.push({
         id: a.id,
         data: a.getString('data'),

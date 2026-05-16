@@ -18,13 +18,20 @@ routerAdd('GET', '/backend/v1/availability', (e) => {
     return e.badRequestError('Invalid date format')
   }
 
-  // 1. Get Service Duration
+  // 1. Check Professional and Service
   let serviceDuration = 30
   try {
+    const prof = $app.findRecordById('users', profissionalId)
+    if (prof.getString('status_aprovacao') !== 'aprovado' || prof.getString('deleted_at') !== '') {
+      return e.json(200, { available_times: [] })
+    }
     const servico = $app.findRecordById('servicos', servicoId)
+    if (!servico.getBool('ativo')) {
+      return e.json(200, { available_times: [] })
+    }
     serviceDuration = servico.getInt('duracao') || 30
   } catch (_) {
-    return e.badRequestError('Serviço não encontrado')
+    return e.badRequestError('Serviço ou profissional não encontrado')
   }
 
   // 2. Get Buffer Duration
@@ -122,7 +129,11 @@ routerAdd('GET', '/backend/v1/availability', (e) => {
         }
       }
 
-      if (!isBusy) {
+      // Grace period: hide slots that are too soon
+      const leadTimeMs = Math.max(30 * 60000, bufferMinutes * 60000)
+      const isPastOrTooSoon = slotStart <= Date.now() + leadTimeMs
+
+      if (!isBusy && !isPastOrTooSoon) {
         const msFromMidnight = currentSlotMs - dayStartMs
         const totalMinutes = Math.floor(msFromMidnight / 60000)
         const h = Math.floor(totalMinutes / 60)
@@ -139,5 +150,5 @@ routerAdd('GET', '/backend/v1/availability', (e) => {
 
   const uniqueTimes = [...new Set(availableTimes)].sort()
 
-  return e.json(200, { available_times: uniqueTimes })
+  return e.json(200, { available_times: uniqueTimes, buffer_duration: bufferMinutes })
 })
