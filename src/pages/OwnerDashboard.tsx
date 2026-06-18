@@ -11,7 +11,9 @@ import pb from '@/lib/pocketbase/client'
 import { useRealtime } from '@/hooks/use-realtime'
 import useMasterStore from '@/stores/useMasterStore'
 import { useToast } from '@/hooks/use-toast'
-import { Copy, Upload, Trash2, Loader2 } from 'lucide-react'
+import { Copy, Upload, Trash2, Loader2, CalendarDays, Scissors } from 'lucide-react'
+import { Textarea } from '@/components/ui/textarea'
+import { Link } from 'react-router-dom'
 
 export default function OwnerDashboard() {
   const { user } = useAuth()
@@ -27,6 +29,8 @@ export default function OwnerDashboard() {
   const [webhookUrl, setWebhookUrl] = useState('')
   const [logoFile, setLogoFile] = useState<File | null>(null)
   const [savingBranding, setSavingBranding] = useState(false)
+  const [bio, setBio] = useState('')
+  const [savingBio, setSavingBio] = useState(false)
   const [savingWebhook, setSavingWebhook] = useState(false)
   const [testingWebhook, setTestingWebhook] = useState(false)
   const [slugInput, setSlugInput] = useState('')
@@ -51,6 +55,7 @@ export default function OwnerDashboard() {
       setCorSecundaria(owner.cor_secundaria || '#f1f5f9')
       setWebhookUrl(owner.webhook_url || '')
       setSlugInput(owner.slug || '')
+      setBio(owner.bio || '')
 
       const profs = await pb.collection('users').getFullList({
         filter: `proprietario_id = '${targetId}'`,
@@ -199,6 +204,24 @@ export default function OwnerDashboard() {
       toast({ title: 'Erro ao atualizar link', description: e.message, variant: 'destructive' })
     } finally {
       setSavingSlug(false)
+    }
+  }
+
+  const handleSaveBio = async () => {
+    if (!ownerData) return
+    setSavingBio(true)
+    try {
+      await pb.collection('users').update(ownerData.id, { bio })
+      toast({ title: 'Biografia atualizada com sucesso!' })
+      loadData()
+    } catch (e: any) {
+      toast({
+        title: 'Erro ao atualizar biografia',
+        description: e.message,
+        variant: 'destructive',
+      })
+    } finally {
+      setSavingBio(false)
     }
   }
 
@@ -522,6 +545,64 @@ export default function OwnerDashboard() {
 
             <Card className="shadow-sm border-slate-200 lg:col-span-2">
               <CardHeader>
+                <CardTitle>Biografia</CardTitle>
+                <CardDescription>
+                  Apresente-se aos seus clientes. Esta mensagem será exibida na sua página de
+                  agendamento.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <Textarea
+                  value={bio}
+                  onChange={(e) => setBio(e.target.value)}
+                  placeholder="Escreva um pouco sobre você e sua experiência..."
+                  rows={4}
+                  className="resize-none"
+                />
+                <div className="flex justify-end">
+                  <Button onClick={handleSaveBio} disabled={savingBio}>
+                    {savingBio ? 'Salvando...' : 'Salvar Biografia'}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:col-span-2">
+              <Card className="shadow-sm border-slate-200 hover:border-primary transition-colors">
+                <Link to="/dashboard/profissional/agenda" className="block p-6">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center text-primary">
+                      <CalendarDays className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-lg text-slate-800">Minha Agenda</h3>
+                      <p className="text-slate-500 text-sm">
+                        Configure seus horários de atendimento pessoal.
+                      </p>
+                    </div>
+                  </div>
+                </Link>
+              </Card>
+              <Card className="shadow-sm border-slate-200 hover:border-primary transition-colors">
+                <Link to="/dashboard/proprietario/servicos" className="block p-6">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center text-primary">
+                      <Scissors className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-lg text-slate-800">Meus Serviços</h3>
+                      <p className="text-slate-500 text-sm">
+                        Gerencie os serviços que você presta.
+                      </p>
+                    </div>
+                  </div>
+                </Link>
+              </Card>
+            </div>
+
+            <Card className="shadow-sm border-slate-200 lg:col-span-2">
+              <CardHeader>
+                {' '}
                 <CardTitle>Integrações e Automações</CardTitle>
                 <CardDescription>
                   Configure um webhook para enviar dados de novos agendamentos para ferramentas

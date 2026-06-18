@@ -118,7 +118,8 @@ export default function Booking() {
         <h1 className="text-3xl font-bold text-slate-800 mb-2">
           Agendar em {clinic.empresa || clinic.name}
         </h1>
-        <p className="text-slate-500">Siga os passos abaixo para concluir seu agendamento.</p>
+        {clinic.bio && <p className="text-slate-600 max-w-2xl mb-4 italic">"{clinic.bio}"</p>}
+        <p className="text-slate-500 mt-2">Siga os passos abaixo para concluir seu agendamento.</p>
       </div>
       <BookingFlow proprietarioId={resolvedProprietarioId} onCancel={() => navigate('/')} />
     </div>

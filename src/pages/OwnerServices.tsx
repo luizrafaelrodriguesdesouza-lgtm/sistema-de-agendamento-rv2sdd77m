@@ -11,6 +11,13 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog'
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
   Table,
   TableBody,
   TableCell,
@@ -38,13 +45,14 @@ export default function OwnerServices() {
     descricao: '',
     preco: '',
     duracao: '',
+    profissional_id: '',
   })
 
   const loadData = async () => {
     if (!user) return
     try {
       const servs = await pb.collection('servicos').getFullList({
-        filter: `proprietario_id = '${user.id}' && profissional_id = ''`,
+        filter: `proprietario_id = '${user.id}' && (profissional_id = '' || profissional_id = '${user.id}')`,
         sort: 'nome',
       })
       setServices(servs)
@@ -62,7 +70,7 @@ export default function OwnerServices() {
 
   const handleOpenNew = () => {
     setEditingId(null)
-    setFormData({ nome: '', descricao: '', preco: '', duracao: '' })
+    setFormData({ nome: '', descricao: '', preco: '', duracao: '', profissional_id: '' })
     setIsDialogOpen(true)
   }
 
@@ -73,6 +81,7 @@ export default function OwnerServices() {
       descricao: s.descricao || '',
       preco: s.preco.toString(),
       duracao: s.duracao.toString(),
+      profissional_id: s.profissional_id || '',
     })
     setIsDialogOpen(true)
   }
@@ -85,6 +94,7 @@ export default function OwnerServices() {
         preco: Number(formData.preco),
         duracao: Number(formData.duracao),
         proprietario_id: user?.id,
+        profissional_id: formData.profissional_id || '',
         ativo: true,
       }
       if (editingId) {
@@ -139,6 +149,7 @@ export default function OwnerServices() {
                   <TableHead>Serviço</TableHead>
                   <TableHead>Preço (R$)</TableHead>
                   <TableHead>Duração (min)</TableHead>
+                  <TableHead>Prestador</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
@@ -151,7 +162,19 @@ export default function OwnerServices() {
                     </TableCell>
                     <TableCell>{s.preco.toFixed(2)}</TableCell>
                     <TableCell>{s.duracao}</TableCell>
+                    <TableCell>
+                      {s.profissional_id ? (
+                        <span className="inline-flex items-center rounded-md bg-primary/10 px-2 py-1 text-xs font-medium text-primary ring-1 ring-inset ring-primary/20 whitespace-nowrap">
+                          Somente Eu
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center rounded-md bg-slate-100 px-2 py-1 text-xs font-medium text-slate-600 ring-1 ring-inset ring-slate-500/10 whitespace-nowrap">
+                          Catálogo
+                        </span>
+                      )}
+                    </TableCell>
                     <TableCell className="text-right">
+                      {' '}
                       <Button variant="ghost" size="icon" onClick={() => handleOpenEdit(s)}>
                         <Edit className="w-4 h-4" />
                       </Button>
@@ -192,7 +215,25 @@ export default function OwnerServices() {
                 onChange={(e) => setFormData({ ...formData, descricao: e.target.value })}
               />
             </div>
+            <div className="space-y-2">
+              <Label>Quem pode prestar este serviço?</Label>
+              <Select
+                value={formData.profissional_id}
+                onValueChange={(v) => setFormData({ ...formData, profissional_id: v })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Qualquer profissional (Catálogo da Clínica)</SelectItem>
+                  <SelectItem value={user?.id || 'owner'}>
+                    Somente Eu (Serviço Exclusivo)
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             <div className="grid grid-cols-2 gap-4">
+              {' '}
               <div className="space-y-2">
                 <Label>Preço (R$)</Label>
                 <Input

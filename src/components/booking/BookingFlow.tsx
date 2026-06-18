@@ -75,12 +75,19 @@ export function BookingFlow({
       const fetchProfs = async () => {
         setLoadingProfs(true)
         try {
-          let filterStr = `((tipo = 'profissional' && proprietario_id = '${proprietarioId}') || id = '${proprietarioId}') && status_aprovacao = 'aprovado' && deleted_at = ''`
+          let filterStr = `((tipo = 'profissional' && proprietario_id = '${proprietarioId}' && status_aprovacao = 'aprovado') || id = '${proprietarioId}') && deleted_at = ''`
           if (selectedService.profissional_id) {
             filterStr = `id = '${selectedService.profissional_id}'`
           }
           const profs = await pb.collection('users').getFullList({ filter: filterStr })
-          setProfessionals(profs)
+
+          const schedules = await pb.collection('horarios_disponiveis').getFullList({
+            filter: `profissional_id.proprietario_id = '${proprietarioId}' || profissional_id = '${proprietarioId}'`,
+          })
+          const profsWithHours = new Set(schedules.map((s: any) => s.profissional_id))
+
+          const filteredProfs = profs.filter((p: any) => profsWithHours.has(p.id))
+          setProfessionals(filteredProfs)
         } catch (error) {
           console.error(error)
         } finally {
