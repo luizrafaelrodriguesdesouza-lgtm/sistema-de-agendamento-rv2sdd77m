@@ -23,10 +23,12 @@ export default function Index() {
     try {
       const result = await pb
         .collection('users')
-        .getFirstListItem(`slug = "${trimmedCode}" && tipo = 'proprietario'`)
+        .getList(1, 1, { filter: `slug = "${trimmedCode}" && tipo = 'proprietario'` })
 
-      if (result && result.id) {
-        navigate(`/booking/${result.id}`)
+      if (result.items.length > 0) {
+        navigate(`/booking/${result.items[0].id}`)
+      } else {
+        setError('Código de unidade inválido. Tente novamente.')
       }
     } catch (err) {
       console.error(err)

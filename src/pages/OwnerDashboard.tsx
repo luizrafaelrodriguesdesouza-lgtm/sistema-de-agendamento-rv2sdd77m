@@ -29,6 +29,8 @@ export default function OwnerDashboard() {
   const [savingBranding, setSavingBranding] = useState(false)
   const [savingWebhook, setSavingWebhook] = useState(false)
   const [testingWebhook, setTestingWebhook] = useState(false)
+  const [slugInput, setSlugInput] = useState('')
+  const [savingSlug, setSavingSlug] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const loadData = async () => {
@@ -48,6 +50,7 @@ export default function OwnerDashboard() {
       setCorTema(owner.cor_tema || '#009999')
       setCorSecundaria(owner.cor_secundaria || '#f1f5f9')
       setWebhookUrl(owner.webhook_url || '')
+      setSlugInput(owner.slug || '')
 
       const profs = await pb.collection('users').getFullList({
         filter: `proprietario_id = '${targetId}'`,
@@ -155,6 +158,47 @@ export default function OwnerDashboard() {
       toast({ title: 'Erro ao configurar webhook', description: e.message, variant: 'destructive' })
     } finally {
       setSavingWebhook(false)
+    }
+  }
+
+  const handleSaveSlug = async () => {
+    if (!ownerData) return
+    const cleanSlug = slugInput
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '')
+
+    if (!cleanSlug) {
+      toast({ title: 'Slug inválido', variant: 'destructive' })
+      return
+    }
+
+    setSavingSlug(true)
+    try {
+      try {
+        const records = await pb
+          .collection('users')
+          .getList(1, 1, { filter: `slug = '${cleanSlug}'` })
+        if (records.items.length > 0 && records.items[0].id !== ownerData.id) {
+          toast({ title: 'Este link já está em uso.', variant: 'destructive' })
+          setSavingSlug(false)
+          return
+        }
+      } catch {
+        /* intentionally ignored */
+      }
+
+      await pb.collection('users').update(ownerData.id, { slug: cleanSlug })
+      setSlugInput(cleanSlug)
+      toast({ title: 'Link atualizado com sucesso!' })
+      loadData()
+    } catch (e: any) {
+      toast({ title: 'Erro ao atualizar link', description: e.message, variant: 'destructive' })
+    } finally {
+      setSavingSlug(false)
     }
   }
 
@@ -267,52 +311,91 @@ export default function OwnerDashboard() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <Card className="shadow-sm border-slate-200 lg:col-span-2">
               <CardHeader>
-                <CardTitle>Compartilhamento</CardTitle>
-                <CardDescription>Compartilhe os links de acesso da sua clínica.</CardDescription>
+                <CardTitle>Link do Salão e Compartilhamento</CardTitle>
+                <CardDescription>
+                  Configure sua URL exclusiva e compartilhe os links de acesso da sua clínica.
+                </CardDescription>
               </CardHeader>
-              <CardContent className="flex flex-col sm:flex-row gap-4">
-                <Button
-                  variant="outline"
-                  className="flex-1"
-                  onClick={() => {
-                    const slug = ownerData?.slug || user?.slug
-                    if (!slug) {
-                      toast({
-                        title: 'Erro',
-                        description: 'Slug não gerado para esta clínica.',
-                        variant: 'destructive',
-                      })
-                      return
-                    }
-                    const baseUrl = window.location.origin
-                    navigator.clipboard.writeText(`${baseUrl}/${slug}`)
-                    toast({ title: 'Link copiado!' })
-                  }}
-                >
-                  <Copy className="w-4 h-4 mr-2" /> Convite Cliente
-                </Button>
-                <Button
-                  variant="outline"
-                  className="flex-1"
-                  onClick={() => {
-                    const slug = ownerData?.slug || user?.slug
-                    if (!slug) {
-                      toast({
-                        title: 'Erro',
-                        description: 'Slug não gerado para esta clínica.',
-                        variant: 'destructive',
-                      })
-                      return
-                    }
-                    const baseUrl = window.location.origin
-                    navigator.clipboard.writeText(
-                      `${baseUrl}/register?tipo=profissional&salao=${slug}`,
-                    )
-                    toast({ title: 'Link copiado!' })
-                  }}
-                >
-                  <Copy className="w-4 h-4 mr-2" /> Convite Profissional
-                </Button>
+              <CardContent className="space-y-6">
+                <div className="flex flex-col md:flex-row gap-4">
+                  <div className="flex-1 space-y-2">
+                    <Label>Personalizar Link do Salão (Slug)</Label>
+                    <div className="flex items-center gap-2">
+                      <div className="bg-slate-100 text-slate-500 px-3 py-2 rounded-md border text-sm select-none shrink-0 overflow-hidden text-ellipsis whitespace-nowrap hidden sm:block">
+                        agendamais.goskip.app/
+                      </div>
+                      <Input
+                        value={slugInput}
+                        onChange={(e) =>
+                          setSlugInput(
+                            e.target.value
+                              .toLowerCase()
+                              .replace(/[^a-z0-9-]/g, '-')
+                              .replace(/-+/g, '-'),
+                          )
+                        }
+                        placeholder="meu-salao"
+                      />
+                      <Button
+                        onClick={handleSaveSlug}
+                        disabled={savingSlug || !slugInput || slugInput === ownerData?.slug}
+                      >
+                        {savingSlug ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Salvar'}
+                      </Button>
+                    </div>
+                    <p className="text-xs text-slate-500">
+                      Use apenas letras, números e hifens. Ex: meu-salao
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-3 pt-4 border-t">
+                  <Label>Links de Compartilhamento</Label>
+                  <div className="flex flex-col sm:flex-row gap-4">
+                    <Button
+                      variant="outline"
+                      className="flex-1"
+                      onClick={() => {
+                        const slug = ownerData?.slug || user?.slug
+                        if (!slug) {
+                          toast({
+                            title: 'Erro',
+                            description: 'Slug não gerado para esta clínica.',
+                            variant: 'destructive',
+                          })
+                          return
+                        }
+                        const baseUrl = window.location.origin
+                        navigator.clipboard.writeText(`${baseUrl}/${slug}`)
+                        toast({ title: 'Link copiado!' })
+                      }}
+                    >
+                      <Copy className="w-4 h-4 mr-2" /> Convite Cliente
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="flex-1"
+                      onClick={() => {
+                        const slug = ownerData?.slug || user?.slug
+                        if (!slug) {
+                          toast({
+                            title: 'Erro',
+                            description: 'Slug não gerado para esta clínica.',
+                            variant: 'destructive',
+                          })
+                          return
+                        }
+                        const baseUrl = window.location.origin
+                        navigator.clipboard.writeText(
+                          `${baseUrl}/register?tipo=profissional&salao=${slug}`,
+                        )
+                        toast({ title: 'Link copiado!' })
+                      }}
+                    >
+                      <Copy className="w-4 h-4 mr-2" /> Convite Profissional
+                    </Button>
+                  </div>
+                </div>
               </CardContent>
             </Card>
 

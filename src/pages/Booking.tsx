@@ -6,36 +6,40 @@ import { hexToHsl } from '@/lib/colors'
 import { Button } from '@/components/ui/button'
 
 export default function Booking() {
-  const { proprietarioId, slug } = useParams()
+  const { proprietarioId, slug, identifier } = useParams()
   const [searchParams] = useSearchParams()
-  const salao = searchParams.get('salao') || slug
   const navigate = useNavigate()
+
+  const querySalao = searchParams.get('salao')
+  const routeIdentifier = identifier || proprietarioId || slug || querySalao
+
   const [clinic, setClinic] = useState<any>(null)
-  const [resolvedProprietarioId, setResolvedProprietarioId] = useState<string | null>(
-    proprietarioId || null,
-  )
+  const [resolvedProprietarioId, setResolvedProprietarioId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const fetchClinic = async () => {
+      if (!routeIdentifier) {
+        setError('Salão não encontrado. Verifique o link.')
+        setLoading(false)
+        return
+      }
+
       setLoading(true)
       setError(null)
       try {
-        if (proprietarioId) {
-          const record = await pb.collection('users').getOne(proprietarioId)
-          setClinic(record)
-          setResolvedProprietarioId(record.id)
-        } else if (salao) {
-          const records = await pb.collection('users').getFullList({
-            filter: `slug = '${salao}'`,
-            max: 1,
-          })
-          if (records.length > 0) {
-            setClinic(records[0])
-            setResolvedProprietarioId(records[0].id)
+        const records = await pb.collection('users').getList(1, 1, {
+          filter: `slug = '${routeIdentifier}' || id = '${routeIdentifier}'`,
+        })
+
+        if (records.items.length > 0) {
+          const foundClinic = records.items[0]
+          if (foundClinic.tipo === 'proprietario' || foundClinic.tipo === 'profissional') {
+            setClinic(foundClinic)
+            setResolvedProprietarioId(foundClinic.id)
           } else {
-            setError('Salão não encontrado. Verifique o link.')
+            setError('O link fornecido não pertence a um salão válido.')
           }
         } else {
           setError('Salão não encontrado. Verifique o link.')
@@ -47,7 +51,7 @@ export default function Booking() {
       }
     }
     fetchClinic()
-  }, [proprietarioId, salao])
+  }, [routeIdentifier])
 
   if (error) {
     return (
