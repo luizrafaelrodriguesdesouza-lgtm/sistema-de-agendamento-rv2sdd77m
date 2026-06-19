@@ -9,6 +9,7 @@ import {
   FileText,
   PieChart,
   Star,
+  CalendarDays,
 } from 'lucide-react'
 import {
   Sidebar,
@@ -96,6 +97,26 @@ export function AppSidebar() {
                     >
                       <Link to="/dashboard/proprietario">
                         <BarChart /> Visão Geral da Clínica
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={location.pathname === '/dashboard/profissional/agenda'}
+                    >
+                      <Link to="/dashboard/profissional/agenda">
+                        <Calendar /> Minha Agenda
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={location.pathname === '/dashboard/proprietario/agenda-equipe'}
+                    >
+                      <Link to="/dashboard/proprietario/agenda-equipe">
+                        <CalendarDays /> Agenda da Equipe
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>

@@ -53,10 +53,17 @@ export default function OwnerTeam() {
 
     try {
       const profs = await pb.collection('users').getFullList({
-        filter: `proprietario_id = '${targetId}' && tipo = 'profissional'`,
+        filter: `(proprietario_id = '${targetId}' && tipo = 'profissional') || id = '${targetId}'`,
         sort: '-created',
       })
-      setProfessionals(profs)
+
+      const sortedProfs = profs.sort((a, b) => {
+        if (a.id === targetId) return -1
+        if (b.id === targetId) return 1
+        return 0
+      })
+
+      setProfessionals(sortedProfs)
       setCurrentCount(profs.length)
 
       try {
@@ -182,7 +189,14 @@ export default function OwnerTeam() {
                   className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 border rounded-xl bg-slate-50 gap-4"
                 >
                   <div>
-                    <p className="font-bold text-slate-800">{p.name || p.email}</p>
+                    <p className="font-bold text-slate-800 flex items-center gap-2">
+                      {p.name || p.email}
+                      {p.id === getTargetId() && (
+                        <span className="text-xs font-normal text-slate-500 bg-slate-200 px-2 py-0.5 rounded-full">
+                          Você (Proprietário)
+                        </span>
+                      )}
+                    </p>
                     <p className="text-sm text-slate-500">{p.email}</p>
                     {p.especialidades && (
                       <p className="text-xs text-slate-400 mt-1">Esp: {p.especialidades}</p>
@@ -202,7 +216,7 @@ export default function OwnerTeam() {
                       {p.status_aprovacao.toUpperCase()}
                     </Badge>
 
-                    {p.status_aprovacao === 'pendente' && (
+                    {p.status_aprovacao === 'pendente' && p.id !== getTargetId() && (
                       <div className="flex gap-2">
                         <Button
                           size="sm"

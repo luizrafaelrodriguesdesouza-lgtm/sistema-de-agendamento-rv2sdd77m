@@ -30,6 +30,7 @@ export default function OwnerDashboard() {
   const [logoFile, setLogoFile] = useState<File | null>(null)
   const [savingBranding, setSavingBranding] = useState(false)
   const [bio, setBio] = useState('')
+  const [especialidades, setEspecialidades] = useState('')
   const [savingBio, setSavingBio] = useState(false)
   const [savingWebhook, setSavingWebhook] = useState(false)
   const [testingWebhook, setTestingWebhook] = useState(false)
@@ -56,6 +57,7 @@ export default function OwnerDashboard() {
       setWebhookUrl(owner.webhook_url || '')
       setSlugInput(owner.slug || '')
       setBio(owner.bio || '')
+      setEspecialidades(owner.especialidades || '')
 
       const profs = await pb.collection('users').getFullList({
         filter: `proprietario_id = '${targetId}'`,
@@ -211,12 +213,12 @@ export default function OwnerDashboard() {
     if (!ownerData) return
     setSavingBio(true)
     try {
-      await pb.collection('users').update(ownerData.id, { bio })
-      toast({ title: 'Biografia atualizada com sucesso!' })
+      await pb.collection('users').update(ownerData.id, { bio, especialidades })
+      toast({ title: 'Perfil atualizado com sucesso!' })
       loadData()
     } catch (e: any) {
       toast({
-        title: 'Erro ao atualizar biografia',
+        title: 'Erro ao atualizar perfil',
         description: e.message,
         variant: 'destructive',
       })
@@ -545,23 +547,34 @@ export default function OwnerDashboard() {
 
             <Card className="shadow-sm border-slate-200 lg:col-span-2">
               <CardHeader>
-                <CardTitle>Biografia</CardTitle>
+                <CardTitle>Perfil Profissional</CardTitle>
                 <CardDescription>
-                  Apresente-se aos seus clientes. Esta mensagem será exibida na sua página de
-                  agendamento.
+                  Apresente-se aos seus clientes com sua biografia e especialidades.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <Textarea
-                  value={bio}
-                  onChange={(e) => setBio(e.target.value)}
-                  placeholder="Escreva um pouco sobre você e sua experiência..."
-                  rows={4}
-                  className="resize-none"
-                />
+                <div className="space-y-2">
+                  <Label>Especialidades</Label>
+                  <Input
+                    value={especialidades}
+                    onChange={(e) => setEspecialidades(e.target.value)}
+                    placeholder="Ex: Cabelo, Barba, Unhas..."
+                  />
+                  <p className="text-xs text-slate-500">Separadas por vírgula.</p>
+                </div>
+                <div className="space-y-2">
+                  <Label>Biografia</Label>
+                  <Textarea
+                    value={bio}
+                    onChange={(e) => setBio(e.target.value)}
+                    placeholder="Escreva um pouco sobre você e sua experiência..."
+                    rows={4}
+                    className="resize-none"
+                  />
+                </div>
                 <div className="flex justify-end">
                   <Button onClick={handleSaveBio} disabled={savingBio}>
-                    {savingBio ? 'Salvando...' : 'Salvar Biografia'}
+                    {savingBio ? 'Salvando...' : 'Salvar Perfil'}
                   </Button>
                 </div>
               </CardContent>

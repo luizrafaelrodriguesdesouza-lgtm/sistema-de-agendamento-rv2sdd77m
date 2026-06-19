@@ -60,7 +60,7 @@ export default function OwnerPlan() {
           filter: 'ativo = true',
         }),
         pb.collection('users').getFullList({
-          filter: `proprietario_id = '${targetId}' && tipo = 'profissional'`,
+          filter: `(proprietario_id = '${targetId}' && tipo = 'profissional') || id = '${targetId}'`,
         }),
       ])
 
