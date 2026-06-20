@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-18T22:03:56.047Z",
+  "generatedAt": "2026-06-19T01:02:49.859Z",
   "collections": [
     {
       "name": "users",
@@ -321,9 +321,9 @@
       "apiRules": {
         "list": "",
         "view": "",
-        "create": "@request.auth.id != '' && profissional_id = @request.auth.id",
-        "update": "@request.auth.id != '' && profissional_id = @request.auth.id",
-        "delete": "@request.auth.id != '' && profissional_id = @request.auth.id"
+        "create": "@request.auth.id != '' && (profissional_id = @request.auth.id || profissional_id.proprietario_id = @request.auth.id || @request.auth.tipo = 'master')",
+        "update": "@request.auth.id != '' && (profissional_id = @request.auth.id || profissional_id.proprietario_id = @request.auth.id || @request.auth.tipo = 'master')",
+        "delete": "@request.auth.id != '' && (profissional_id = @request.auth.id || profissional_id.proprietario_id = @request.auth.id || @request.auth.tipo = 'master')"
       },
       "fields": [
         {
@@ -364,6 +364,25 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "tipo",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["recorrente", "especifico", "bloqueio"]
+        },
+        {
+          "name": "data",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "motivo",
+          "type": "text",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": []

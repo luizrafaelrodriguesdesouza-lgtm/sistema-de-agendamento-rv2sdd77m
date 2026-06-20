@@ -43,18 +43,46 @@ routerAdd('GET', '/backend/v1/availability', (e) => {
     }
   } catch (_) {}
 
-  // 3. Get Schedules
-  let schedules = []
+  // 3. Get Schedules & Blocks
+  let allSchedules = []
   try {
-    schedules = $app.findRecordsByFilter(
+    allSchedules = $app.findRecordsByFilter(
       'horarios_disponiveis',
-      'profissional_id = {:pid} && dia_semana = {:dow}',
+      'profissional_id = {:pid}',
       '',
-      100,
+      1000,
       0,
-      { pid: profissionalId, dow: dayOfWeek },
+      { pid: profissionalId },
     )
   } catch (_) {}
+
+  const recSchedules = []
+  const espSchedules = []
+  const blocks = []
+
+  const targetDatePrefix = dateStr.substring(0, 10)
+
+  for (let i = 0; i < allSchedules.length; i++) {
+    const s = allSchedules[i]
+    const tipo = s.getString('tipo') || 'recorrente'
+    const sData = s.getString('data')
+    const sDay = s.getInt('dia_semana')
+
+    let isSpecificDate = false
+    if (sData && sData.substring(0, 10) === targetDatePrefix) {
+      isSpecificDate = true
+    }
+
+    if (tipo === 'bloqueio') {
+      if (isSpecificDate || (!sData && sDay === dayOfWeek)) blocks.push(s)
+    } else if (tipo === 'especifico') {
+      if (isSpecificDate) espSchedules.push(s)
+    } else {
+      if (!sData && sDay === dayOfWeek) recSchedules.push(s)
+    }
+  }
+
+  const schedules = espSchedules.length > 0 ? espSchedules : recSchedules
 
   if (schedules.length === 0) {
     return e.json(200, { available_times: [] })
@@ -80,6 +108,20 @@ routerAdd('GET', '/backend/v1/availability', (e) => {
 
   // Pre-calculate busy blocks
   const busyBlocks = []
+
+  for (let i = 0; i < blocks.length; i++) {
+    const b = blocks[i]
+    const hInicio = b.getString('hora_inicio')
+    const hFim = b.getString('hora_fim')
+    if (hInicio && hFim) {
+      const [startH, startM] = hInicio.split(':').map(Number)
+      const [endH, endM] = hFim.split(':').map(Number)
+      const bStart = dayStartMs + startH * 3600000 + startM * 60000
+      const bEnd = dayStartMs + endH * 3600000 + endM * 60000
+      busyBlocks.push({ start: bStart, end: bEnd, isBlock: true })
+    }
+  }
+
   for (let i = 0; i < appointments.length; i++) {
     const appt = appointments[i]
     const apptDateStr = appt.getString('data')
@@ -97,7 +139,7 @@ routerAdd('GET', '/backend/v1/availability', (e) => {
 
     const bStart = apptStart
     const bEnd = apptStart + apptDuration * 60000 + bufferMinutes * 60000
-    busyBlocks.push({ start: bStart, end: bEnd })
+    busyBlocks.push({ start: bStart, end: bEnd, isBlock: false })
   }
 
   const availableTimes = []
@@ -123,7 +165,8 @@ routerAdd('GET', '/backend/v1/availability', (e) => {
       let isBusy = false
       for (let j = 0; j < busyBlocks.length; j++) {
         const b = busyBlocks[j]
-        if (slotStart < b.end && slotEnd > b.start) {
+        const effectiveSlotEnd = b.isBlock ? slotStart + serviceDuration * 60000 : slotEnd
+        if (slotStart < b.end && effectiveSlotEnd > b.start) {
           isBusy = true
           break
         }
