@@ -108,10 +108,10 @@ export default function Booking() {
           <img
             src={pb.files.getURL(clinic, clinic.logo)}
             alt="Logo"
-            className="h-20 w-auto mb-4 rounded-xl shadow-sm object-contain bg-white p-2"
+            className="h-32 md:h-40 w-auto mb-6 rounded-xl shadow-sm object-contain bg-white p-2"
           />
         ) : (
-          <div className="h-20 w-20 mb-4 rounded-xl bg-primary/10 flex items-center justify-center text-primary text-3xl font-bold">
+          <div className="h-32 w-32 md:h-40 md:w-40 mb-6 rounded-xl bg-primary/10 flex items-center justify-center text-primary text-5xl md:text-7xl font-bold">
             {(clinic.empresa || clinic.name)?.[0]?.toUpperCase() || 'E'}
           </div>
         )}
