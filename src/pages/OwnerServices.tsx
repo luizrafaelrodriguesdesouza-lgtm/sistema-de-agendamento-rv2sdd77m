@@ -29,7 +29,7 @@ import { useToast } from '@/hooks/use-toast'
 import pb from '@/lib/pocketbase/client'
 import { useAuth } from '@/hooks/use-auth'
 import { useRealtime } from '@/hooks/use-realtime'
-import { Plus, Edit, Trash2 } from 'lucide-react'
+import { Plus, Edit, Trash2, Image as ImageIcon, X } from 'lucide-react'
 
 export default function OwnerServices() {
   const { user } = useAuth()
@@ -39,6 +39,10 @@ export default function OwnerServices() {
 
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
+
+  const [fileToUpload, setFileToUpload] = useState<File | null>(null)
+  const [currentFotoUrl, setCurrentFotoUrl] = useState<string | null>(null)
+  const [removeFoto, setRemoveFoto] = useState(false)
 
   const [formData, setFormData] = useState({
     nome: '',
@@ -71,6 +75,9 @@ export default function OwnerServices() {
   const handleOpenNew = () => {
     setEditingId(null)
     setFormData({ nome: '', descricao: '', preco: '', duracao: '', profissional_id: '' })
+    setFileToUpload(null)
+    setCurrentFotoUrl(null)
+    setRemoveFoto(false)
     setIsDialogOpen(true)
   }
 
@@ -83,25 +90,34 @@ export default function OwnerServices() {
       duracao: s.duracao.toString(),
       profissional_id: s.profissional_id || '',
     })
+    setFileToUpload(null)
+    setCurrentFotoUrl(s.foto ? pb.files.getURL(s, s.foto) : null)
+    setRemoveFoto(false)
     setIsDialogOpen(true)
   }
 
   const handleSave = async () => {
     try {
-      const data = {
-        nome: formData.nome,
-        descricao: formData.descricao,
-        preco: Number(formData.preco),
-        duracao: Number(formData.duracao),
-        proprietario_id: user?.id,
-        profissional_id: formData.profissional_id || '',
-        ativo: true,
+      const payload = new FormData()
+      payload.append('nome', formData.nome)
+      if (formData.descricao) payload.append('descricao', formData.descricao)
+      payload.append('preco', String(Number(formData.preco)))
+      payload.append('duracao', String(Number(formData.duracao)))
+      payload.append('proprietario_id', user?.id || '')
+      if (formData.profissional_id) payload.append('profissional_id', formData.profissional_id)
+      payload.append('ativo', 'true')
+
+      if (fileToUpload) {
+        payload.append('foto', fileToUpload)
+      } else if (removeFoto) {
+        payload.append('foto', '')
       }
+
       if (editingId) {
-        await pb.collection('servicos').update(editingId, data)
+        await pb.collection('servicos').update(editingId, payload)
         toast({ title: 'Sucesso', description: 'Serviço atualizado.' })
       } else {
-        await pb.collection('servicos').create(data)
+        await pb.collection('servicos').create(payload)
         toast({ title: 'Sucesso', description: 'Serviço criado.' })
       }
       setIsDialogOpen(false)
@@ -157,8 +173,25 @@ export default function OwnerServices() {
                 {services.map((s) => (
                   <TableRow key={s.id}>
                     <TableCell>
-                      <p className="font-medium">{s.nome}</p>
-                      <p className="text-xs text-slate-500">{s.descricao}</p>
+                      <div className="flex items-center gap-3">
+                        {s.foto ? (
+                          <img
+                            src={pb.files.getURL(s, s.foto)}
+                            alt={s.nome}
+                            className="w-10 h-10 rounded-md object-cover border shrink-0"
+                          />
+                        ) : (
+                          <div className="w-10 h-10 rounded-md bg-slate-100 border flex items-center justify-center text-slate-400 shrink-0">
+                            <ImageIcon className="w-5 h-5" />
+                          </div>
+                        )}
+                        <div>
+                          <p className="font-medium">{s.nome}</p>
+                          <p className="text-xs text-slate-500 line-clamp-1 max-w-[200px]">
+                            {s.descricao}
+                          </p>
+                        </div>
+                      </div>
                     </TableCell>
                     <TableCell>{s.preco.toFixed(2)}</TableCell>
                     <TableCell>{s.duracao}</TableCell>
@@ -201,6 +234,51 @@ export default function OwnerServices() {
             <DialogTitle>{editingId ? 'Editar Serviço' : 'Novo Serviço'}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Foto do Serviço (Opcional)</Label>
+              <div className="flex items-center gap-4">
+                {(currentFotoUrl && !removeFoto) || fileToUpload ? (
+                  <div className="relative h-20 w-20 rounded-lg overflow-hidden border shadow-sm shrink-0">
+                    <img
+                      src={fileToUpload ? URL.createObjectURL(fileToUpload) : currentFotoUrl!}
+                      alt="Preview"
+                      className="h-full w-full object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFileToUpload(null)
+                        setRemoveFoto(true)
+                      }}
+                      className="absolute top-1 right-1 bg-black/50 text-white rounded-full p-1 hover:bg-black/70 transition-colors"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                ) : (
+                  <label className="flex h-20 w-20 cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-slate-300 bg-slate-50 hover:bg-slate-100 transition-colors shrink-0">
+                    <ImageIcon className="h-6 w-6 text-slate-400 mb-1" />
+                    <span className="text-[10px] text-slate-500 font-medium">Upload</span>
+                    <input
+                      type="file"
+                      className="hidden"
+                      accept="image/jpeg,image/png,image/webp"
+                      onChange={(e) => {
+                        if (e.target.files && e.target.files[0]) {
+                          setFileToUpload(e.target.files[0])
+                          setRemoveFoto(false)
+                        }
+                      }}
+                    />
+                  </label>
+                )}
+                <div className="flex-1 text-xs text-slate-500">
+                  <p>Adicione uma imagem representativa para o seu serviço.</p>
+                  <p>Recomendado: Imagens quadradas (1:1), tamanho máximo de 5MB.</p>
+                  <p>Formatos suportados: JPG, PNG, WEBP.</p>
+                </div>
+              </div>
+            </div>
             <div className="space-y-2">
               <Label>Nome do Serviço</Label>
               <Input

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-20T14:11:57.624Z",
+  "generatedAt": "2026-06-20T17:54:51.374Z",
   "collections": [
     {
       "name": "users",
@@ -311,6 +311,12 @@
           "required": false,
           "system": false,
           "collectionRef": "users"
+        },
+        {
+          "name": "foto",
+          "type": "file",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": []
