@@ -218,14 +218,16 @@ export default function OwnerServices() {
             <div className="space-y-2">
               <Label>Quem pode prestar este serviço?</Label>
               <Select
-                value={formData.profissional_id}
-                onValueChange={(v) => setFormData({ ...formData, profissional_id: v })}
+                value={formData.profissional_id || 'all'}
+                onValueChange={(v) =>
+                  setFormData({ ...formData, profissional_id: v === 'all' ? '' : v })
+                }
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Qualquer profissional (Catálogo da Clínica)</SelectItem>
+                  <SelectItem value="all">Qualquer profissional (Catálogo da Clínica)</SelectItem>
                   <SelectItem value={user?.id || 'owner'}>
                     Somente Eu (Serviço Exclusivo)
                   </SelectItem>
