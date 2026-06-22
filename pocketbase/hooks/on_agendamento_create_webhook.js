@@ -78,6 +78,11 @@ onRecordAfterCreateSuccess((e) => {
         valor: preco,
         referencia: agendamento.getString('referencia') || '',
       },
+      custom_data: {
+        custom_param_1: proprietario.getString('webhook_custom_1') || '',
+        custom_param_2: proprietario.getString('webhook_custom_2') || '',
+        custom_param_3: proprietario.getString('webhook_custom_3') || '',
+      },
     }
 
     let statusCode = 0

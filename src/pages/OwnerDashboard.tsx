@@ -27,6 +27,9 @@ export default function OwnerDashboard() {
   const [corTema, setCorTema] = useState('')
   const [corSecundaria, setCorSecundaria] = useState('')
   const [webhookUrl, setWebhookUrl] = useState('')
+  const [webhookCustom1, setWebhookCustom1] = useState('')
+  const [webhookCustom2, setWebhookCustom2] = useState('')
+  const [webhookCustom3, setWebhookCustom3] = useState('')
   const [logoFile, setLogoFile] = useState<File | null>(null)
   const [savingBranding, setSavingBranding] = useState(false)
   const [bio, setBio] = useState('')
@@ -55,6 +58,9 @@ export default function OwnerDashboard() {
       setCorTema(owner.cor_tema || '#009999')
       setCorSecundaria(owner.cor_secundaria || '#f1f5f9')
       setWebhookUrl(owner.webhook_url || '')
+      setWebhookCustom1(owner.webhook_custom_1 || '')
+      setWebhookCustom2(owner.webhook_custom_2 || '')
+      setWebhookCustom3(owner.webhook_custom_3 || '')
       setSlugInput(owner.slug || '')
       setBio(owner.bio || '')
       setEspecialidades(owner.especialidades || '')
@@ -157,7 +163,12 @@ export default function OwnerDashboard() {
     }
     setSavingWebhook(true)
     try {
-      await pb.collection('users').update(ownerData.id, { webhook_url: sanitizedUrl })
+      await pb.collection('users').update(ownerData.id, {
+        webhook_url: sanitizedUrl,
+        webhook_custom_1: webhookCustom1,
+        webhook_custom_2: webhookCustom2,
+        webhook_custom_3: webhookCustom3,
+      })
       setWebhookUrl(sanitizedUrl)
       toast({ title: 'Webhook configurado com sucesso!' })
       loadData()
@@ -638,6 +649,37 @@ export default function OwnerDashboard() {
                       que um novo agendamento for criado.
                     </p>
                   </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="webhook_custom_1">Dado Fixo Webhook 1</Label>
+                      <Input
+                        id="webhook_custom_1"
+                        placeholder="Ex: id_unidade"
+                        value={webhookCustom1}
+                        onChange={(e) => setWebhookCustom1(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="webhook_custom_2">Dado Fixo Webhook 2</Label>
+                      <Input
+                        id="webhook_custom_2"
+                        placeholder="Ex: token_campanha"
+                        value={webhookCustom2}
+                        onChange={(e) => setWebhookCustom2(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="webhook_custom_3">Dado Fixo Webhook 3</Label>
+                      <Input
+                        id="webhook_custom_3"
+                        placeholder="Ex: origem"
+                        value={webhookCustom3}
+                        onChange={(e) => setWebhookCustom3(e.target.value)}
+                      />
+                    </div>
+                  </div>
+
                   <div className="flex justify-end gap-3">
                     <Button
                       variant="outline"

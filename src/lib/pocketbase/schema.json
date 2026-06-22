@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-22T16:05:46.345Z",
+  "generatedAt": "2026-06-22T16:15:20.829Z",
   "collections": [
     {
       "name": "users",
@@ -134,6 +134,24 @@
         {
           "name": "webhook_url",
           "type": "url",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "webhook_custom_1",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "webhook_custom_2",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "webhook_custom_3",
+          "type": "text",
           "required": false,
           "system": false
         }
