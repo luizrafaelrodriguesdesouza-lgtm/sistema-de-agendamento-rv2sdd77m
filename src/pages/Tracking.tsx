@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useLocation } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -9,24 +9,31 @@ import { Logo } from '@/components/Logo'
 
 export default function Tracking() {
   const { reference } = useParams()
-  const [appointment, setAppointment] = useState<any>(null)
-  const [loading, setLoading] = useState(true)
+  const location = useLocation()
+  const [appointment, setAppointment] = useState<any>(location.state?.appointment || null)
+  const [loading, setLoading] = useState(!location.state?.appointment)
 
   useEffect(() => {
     if (!reference) return
     const fetchApp = async () => {
-      try {
-        const result = await pb
-          .collection('agendamentos')
-          .getFirstListItem(`referencia = '${reference}'`, {
-            expand: 'servico_id,profissional_id',
-          })
-        setAppointment(result)
-      } catch (err) {
-        console.error(err)
-      } finally {
-        setLoading(false)
+      let attempts = 0
+      let result = null
+      while (attempts < 3 && !result) {
+        try {
+          result = await pb.send(`/backend/v1/tracking/${reference}`, { method: 'GET' })
+        } catch (err) {
+          attempts++
+          if (attempts < 3) {
+            await new Promise((r) => setTimeout(r, 1500))
+          } else {
+            console.error(err)
+          }
+        }
       }
+      if (result) {
+        setAppointment(result)
+      }
+      setLoading(false)
     }
     fetchApp()
   }, [reference])
@@ -111,7 +118,7 @@ export default function Tracking() {
               <div className="bg-slate-50 p-4 rounded-xl flex justify-between items-center mt-6">
                 <span className="font-semibold text-slate-700">Valor Total</span>
                 <span className="font-bold text-primary text-xl">
-                  R$ {appointment.expand?.servico_id?.preco.toFixed(2)}
+                  R$ {appointment.expand?.servico_id?.preco?.toFixed(2) || '0.00'}
                 </span>
               </div>
             </CardContent>

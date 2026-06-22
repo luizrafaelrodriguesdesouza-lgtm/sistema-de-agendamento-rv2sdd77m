@@ -245,7 +245,21 @@ export function BookingFlow({
             if (isClientLoggedIn) {
               navigate('/meus-agendamentos')
             } else {
-              navigate(`/consulta/${ref}`)
+              navigate(`/consulta/${ref}`, {
+                state: {
+                  appointment: {
+                    referencia: ref,
+                    data: `${dateTime.date}T${dateTime.time}:00`,
+                    status: 'pendente',
+                    cliente_nome: infosCliente?.cliente_nome,
+                    cliente_email: infosCliente?.cliente_email,
+                    expand: {
+                      servico_id: selectedService,
+                      profissional_id: selectedProf,
+                    },
+                  },
+                },
+              })
             }
           }}
           onChange={(data) => setInfosCliente(data)}

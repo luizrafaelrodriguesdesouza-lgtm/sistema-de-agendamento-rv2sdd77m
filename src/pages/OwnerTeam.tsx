@@ -17,8 +17,14 @@ import pb from '@/lib/pocketbase/client'
 import { useAuth } from '@/hooks/use-auth'
 import { useRealtime } from '@/hooks/use-realtime'
 import useMasterStore from '@/stores/useMasterStore'
-import { Check, X, Plus } from 'lucide-react'
+import { Check, X, Plus, MoreVertical, Trash, Unlink } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 
 export default function OwnerTeam() {
   const { user } = useAuth()
@@ -28,6 +34,10 @@ export default function OwnerTeam() {
   const [loading, setLoading] = useState(true)
   const [rejectingId, setRejectingId] = useState<string | null>(null)
   const [rejectionReason, setRejectionReason] = useState('')
+
+  const [unlinkingId, setUnlinkingId] = useState<string | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+
   const [planLimit, setPlanLimit] = useState<number>(0)
   const [currentCount, setCurrentCount] = useState<number>(0)
 
@@ -108,6 +118,28 @@ export default function OwnerTeam() {
       toast({ title: 'Sucesso', description: 'Profissional rejeitado.' })
       setRejectingId(null)
       setRejectionReason('')
+    } catch (e: any) {
+      toast({ title: 'Erro', description: e.message, variant: 'destructive' })
+    }
+  }
+
+  const handleUnlink = async () => {
+    if (!unlinkingId) return
+    try {
+      await pb.collection('users').update(unlinkingId, { proprietario_id: null })
+      toast({ title: 'Sucesso', description: 'Profissional desvinculado com sucesso.' })
+      setUnlinkingId(null)
+    } catch (e: any) {
+      toast({ title: 'Erro', description: e.message, variant: 'destructive' })
+    }
+  }
+
+  const handleDelete = async () => {
+    if (!deletingId) return
+    try {
+      await pb.collection('users').delete(deletingId)
+      toast({ title: 'Sucesso', description: 'Profissional excluído com sucesso.' })
+      setDeletingId(null)
     } catch (e: any) {
       toast({ title: 'Erro', description: e.message, variant: 'destructive' })
     }
@@ -234,6 +266,29 @@ export default function OwnerTeam() {
                         </Button>
                       </div>
                     )}
+
+                    {p.id !== getTargetId() && (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <MoreVertical className="w-4 h-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => setUnlinkingId(p.id)}>
+                            <Unlink className="w-4 h-4 mr-2" />
+                            Desvincular
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => setDeletingId(p.id)}
+                            className="text-rose-600 focus:bg-rose-50 focus:text-rose-700"
+                          >
+                            <Trash className="w-4 h-4 mr-2" />
+                            Excluir
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )}
                   </div>
                 </div>
               ))}
@@ -260,6 +315,49 @@ export default function OwnerTeam() {
             </Button>
             <Button variant="destructive" onClick={handleReject} disabled={!rejectionReason.trim()}>
               Confirmar Rejeição
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!unlinkingId} onOpenChange={(o) => !o && setUnlinkingId(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Desvincular Profissional</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-slate-600">
+              Tem certeza que deseja desvincular este profissional do seu salão? Ele não fará mais
+              parte da sua equipe.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setUnlinkingId(null)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleUnlink}>Confirmar Desvinculação</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!deletingId} onOpenChange={(o) => !o && setDeletingId(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Excluir Profissional</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-rose-600 font-medium mb-2">Aviso: Esta ação é permanente!</p>
+            <p className="text-slate-600">
+              Isso excluirá todos os dados associados a este profissional. Tem certeza de que deseja
+              prosseguir?
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeletingId(null)}>
+              Cancelar
+            </Button>
+            <Button variant="destructive" onClick={handleDelete}>
+              Confirmar Exclusão
             </Button>
           </DialogFooter>
         </DialogContent>
