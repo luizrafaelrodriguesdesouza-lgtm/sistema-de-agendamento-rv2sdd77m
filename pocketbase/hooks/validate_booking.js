@@ -24,12 +24,14 @@ onRecordCreateRequest((e) => {
 
   let bufferMinutes = 15
   try {
-    const settings = $app.findRecordsByFilter('settings', '', '', 1, 0)
+    const settings = $app.findRecordsByFilter('settings', "id != ''", '', 1, 0)
     if (settings.length > 0) {
-      bufferMinutes = settings[0].getInt('buffer_duration') || 15
+      const bd = settings[0].get('buffer_duration')
+      if (bd !== null && bd !== undefined && bd !== '') {
+        bufferMinutes = Number(bd)
+      }
     }
   } catch (_) {}
-
   const leadTimeMs = Math.max(30 * 60000, bufferMinutes * 60000)
 
   if ((!auth || auth.getString('tipo') === 'cliente') && reqTime <= Date.now() + leadTimeMs) {

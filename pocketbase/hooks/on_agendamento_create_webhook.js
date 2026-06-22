@@ -11,6 +11,15 @@ onRecordAfterCreateSuccess((e) => {
     const proprietario = $app.findRecordById('users', proprietarioId)
     let webhookUrl = proprietario.getString('webhook_url')
 
+    if (!webhookUrl) {
+      try {
+        const settingsList = $app.findRecordsByFilter('settings', "id != ''", '', 1, 0)
+        if (settingsList.length > 0) {
+          webhookUrl = settingsList[0].getString('webhook_url')
+        }
+      } catch (err) {}
+    }
+
     if (!webhookUrl) return e.next()
 
     webhookUrl = webhookUrl.trim().replace(/[\n\r\t]/g, '')

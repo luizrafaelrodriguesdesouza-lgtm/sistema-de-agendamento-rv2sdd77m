@@ -39,7 +39,10 @@ routerAdd('GET', '/backend/v1/availability', (e) => {
   try {
     const settingsList = $app.findRecordsByFilter('settings', "id != ''", '', 1, 0)
     if (settingsList.length > 0) {
-      bufferMinutes = settingsList[0].getInt('buffer_duration')
+      const bd = settingsList[0].get('buffer_duration')
+      if (bd !== null && bd !== undefined && bd !== '') {
+        bufferMinutes = Number(bd)
+      }
     }
   } catch (_) {}
 
